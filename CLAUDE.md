@@ -115,18 +115,15 @@ npm run build:win    Windows NSIS installer (release/)
 
 ## Server pre-check results
 
-Personal development notes (local keys, account-specific paths) go in `CLAUDE.local.md`, which is not committed.
-
-Not checked yet. Record the results of the checklist in DESIGN.md "Server-side requirements and pre-checks" here (fill in before stage 3, SSH).
+Personal development notes (local keys, account-specific paths, anything about one person's account or history) go in `CLAUDE.local.md`, which is not committed.
 
 - Virtual display: `/usr/bin/Xvnc` and `/usr/bin/Xvfb` exist; `vncserver`, `xpra`, `x11vnc` do not. So the app must start `Xvnc` directly (no `vncserver` wrapper).
 - Login shell prints `Command not found.` (csh/tcsh style). Run server commands through `sh -c '…'` instead of relying on bash syntax.
 - Server: `<server-host>`, CentOS 7.9, kernel 3.10, nfs-utils 1.3.0. It is mainly a Cadence IC design server (`/tools/cadence`, `/tools/config/*_cdn.cshrc`).
 - TCAD: Sentaurus T-2022.03 at `/TOOLS/SYNOPSYS/SENTAURUS/T-2022.03` (uppercase path; `bin/` has `swb`, `sde`, `sdevice`, `sprocess`, `svisual`, `inspect`, `gsub`, `gjob`). The lowercase `/tools/synopsys` is an unrelated, broken NFS automount (`nconnect=4` unsupported on kernel 3.10); ignore it.
-- TCAD environment comes from the user's `~/.bash_profile`, which despite its name is csh syntax (`setenv`) and is sourced by hand: `TCAD_HOME`, PATH additions, `STDB=$HOME`, `SNPSLMD_LICENSE_FILE="<license-servers>"` (both license ports reachable from the server). Run tools as `csh -c "source ~/.bash_profile; <cmd>"`. The user used to start the GUI with `source .bash_profile` then `swb &`.
-- Other users may not have this file, so the Sentaurus launchers set `TCAD_HOME`, PATH (`$TCAD_HOME/bin`), `STDB=$HOME` and `SNPSLMD_LICENSE_FILE` themselves (`src/main/launchers.ts`). The profile's other `*_HOME` entries (ICC, DC, …) are not needed for Sentaurus.
+- TCAD environment: Sentaurus needs `TCAD_HOME`, PATH (`$TCAD_HOME/bin`), `STDB=$HOME` and `SNPSLMD_LICENSE_FILE="<license-servers>"` (both license ports reachable from the server). Users cannot be assumed to have a personal profile that sets these, so the Sentaurus launchers set them themselves (`src/main/launchers.ts`). Other `*_HOME` variables (ICC, DC, …) are not needed for Sentaurus.
 - Available X programs for testing: `xterm`, `metacity`, `mwm`.
 - Server address: `<server-address>`, port `<port>` (built-in default in `src/renderer/src/config.ts`). Other users may have a different server or port: they change it under Advanced settings, and the app remembers each user's last successful login (`settings.json` via `src/main/settings.ts`).
 - Login: password works, no OTP prompt. Host key: `SHA256:<host-key-fingerprint>`.
 - Connection path / VPN off campus: (not checked)
-- App name: sogangSSH (appId `com.sogangssh.app`, set in `src/renderer/src/config.ts`, `src/main/index.ts`, `electron-builder.yml`). Repository: public `hafnia-labs/sogangssh` (MIT). The old private repo `chaewoon11/ohmic` is archived (remote `ohmic-archive`); the local folder is still named `OHMIC`.
+- App name: sogangSSH (appId `com.sogangssh.app`, set in `src/renderer/src/config.ts`, `src/main/index.ts`, `electron-builder.yml`). Repository: public `hafnia-labs/sogangssh` (MIT).
