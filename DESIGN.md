@@ -189,6 +189,7 @@ The principle is "ask for the password at every login, store nothing secret".
 3. On the first connection the app shows the server's SHA256 host key fingerprint and asks the user to trust it. It is saved only after the login succeeds; if it changes later, the connection is blocked with a warning that shows both fingerprints.
 4. VNC binds only to the server's localhost and is reachable only through SSH port forwarding. No external ports are opened.
 5. Electron security settings: `contextIsolation: true`, `nodeIntegration: false`, expose only the needed IPC from preload.
+6. The window only ever shows the app's own page: navigation is blocked (including a file dropped onto the window), and main accepts IPC only from the main frame of that exact page, so no other page can reach the SSH session through the preload API.
 
 Passwords, private keys, and OTPs must never appear in log files.
 

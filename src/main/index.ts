@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
-import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { devServerUrl, rendererFile } from './app-page'
 import { askBeforeQuit, registerIpcHandlers, ssh } from './ipc'
 
 function createWindow(): void {
@@ -33,11 +34,15 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  const devUrl = process.env['ELECTRON_RENDERER_URL']
-  if (is.dev && devUrl) {
-    void win.loadURL(devUrl)
+  // The app is a single page: never navigate away from it. This also stops a file dropped onto
+  // the window from opening there with the preload API (reloads are not navigations).
+  win.webContents.on('will-navigate', (event) => event.preventDefault())
+  win.webContents.on('will-redirect', (event) => event.preventDefault())
+
+  if (devServerUrl) {
+    void win.loadURL(devServerUrl)
   } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'))
+    void win.loadFile(rendererFile)
   }
 }
 

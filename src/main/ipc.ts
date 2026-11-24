@@ -9,6 +9,7 @@ import {
   type SshStatus,
   type TerminalOpenResult,
 } from '../shared/ipc'
+import { isAppPage } from './app-page'
 import { launchers } from './launchers'
 import { RemoteDisplay } from './remote/display'
 import { launch } from './remote/launch'
@@ -23,11 +24,12 @@ function send(channel: string, payload: unknown): void {
   }
 }
 
-// Only accept IPC from our own windows (the bundled renderer or the dev server).
+// Only accept IPC from the main frame of the app's own page (the exact bundled index.html, or
+// the dev server). Other file:// pages and subframes are rejected.
 function isTrustedSender(event: IpcMainInvokeEvent | IpcMainEvent): boolean {
-  const url = event.senderFrame?.url ?? ''
-  const devUrl = process.env['ELECTRON_RENDERER_URL']
-  return url.startsWith('file://') || (devUrl !== undefined && url.startsWith(devUrl))
+  const frame = event.senderFrame
+  if (!frame || frame !== event.sender.mainFrame) return false
+  return isAppPage(frame.url)
 }
 
 const shell = new RemoteShell({
