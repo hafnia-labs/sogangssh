@@ -6,7 +6,7 @@ Date: 2026-11-20
 
 A desktop app for working on the school's Linux server without terminal knowledge. One app shows a server terminal and a remote desktop where any installed GUI program can run. Programs run only on the server; the app only displays the screen and forwards input.
 
-Frequently used programs are offered as **launchers** (one-click buttons). Sentaurus TCAD is the first built-in launcher; others (for example Cadence) can be added once their launch commands are checked on the server.
+Frequently used programs are offered as **launchers** (one-click buttons). Version 1 is limited to Sentaurus TCAD: its launchers are the only built-in ones. Other programs (for example Cadence) are planned for version 2, once their launch commands are checked on the server. Until then they can still be started by hand from the terminal.
 
 There are three goals.
 
@@ -47,7 +47,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 
 - Automatic SSH key registration, so later logins need no password (dropped from the MVP: the password is entered at every login)
 - User-defined launchers (add and edit entries in the app)
-- More built-in launchers (for example Cadence Virtuoso), after their commands are checked on the server
+- Version 2: launchers for programs other than Sentaurus TCAD (for example Cadence Virtuoso), after their commands are checked on the server. Version 1 stays TCAD-only.
 - Clipboard copy/paste between the local machine and the remote desktop
 - File upload/download panel (drag and drop)
 - Local graph viewer for result files (.plt)
