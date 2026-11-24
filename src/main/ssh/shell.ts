@@ -31,6 +31,8 @@ export class RemoteShell {
   private channel: ClientChannel | null = null
   private opening: Promise<TerminalOpenResult> | null = null
   private replay = ''
+  /** Bumped by `reset()`; a shell that opens after a reset belongs to a dead connection. */
+  private generation = 0
 
   constructor(private readonly events: ShellEvents) {}
 
@@ -52,10 +54,16 @@ export class RemoteShell {
     }
     if (this.opening) return this.opening
 
+    const generation = this.generation
     this.opening = new Promise<TerminalOpenResult>((resolve) => {
       const pty = { term: 'xterm-256color', cols: c, rows: r }
       const command = shellCommand(env)
       const onChannel = (err: Error | undefined, channel: ClientChannel) => {
+        if (generation !== this.generation) {
+          channel?.close()
+          resolve({ ok: false, error: 'notConnected' })
+          return
+        }
         this.opening = null
         if (err) {
           resolve({ ok: false, error: 'failed', detail: err.message })
@@ -100,6 +108,7 @@ export class RemoteShell {
 
   /** Forget the shell without notifying; used when the whole SSH connection goes away. */
   reset(): void {
+    this.generation++
     const channel = this.channel
     this.channel = null
     this.opening = null

@@ -56,6 +56,11 @@ const findLine = (text: string, prefix: string) =>
 export class RemoteDisplay {
   private session: Session | null = null
   private starting: Promise<DisplayStartResult> | null = null
+  /**
+   * Bumped by `detach()` (a dropped connection or logout). A start that began before the bump
+   * belongs to a dead connection: its result is thrown away instead of becoming the session.
+   */
+  private generation = 0
 
   /** DISPLAY and XAUTHORITY for launching GUI programs on this session. */
   get environment(): DisplayEnvironment | null {
@@ -82,16 +87,23 @@ export class RemoteDisplay {
       return Promise.resolve({ ok: true, url, password, display, reused: true })
     }
     if (this.starting) return this.starting
-    this.starting = this.launch(client, clampSize(width, 1600), clampSize(height, 900)).finally(
-      () => {
-        this.starting = null
-      },
+    const starting = this.launch(
+      client,
+      clampSize(width, 1600),
+      clampSize(height, 900),
+      this.generation,
     )
-    return this.starting
+    this.starting = starting
+    void starting.finally(() => {
+      if (this.starting === starting) this.starting = null
+    })
+    return starting
   }
 
   /** Close the local bridge. The desktop keeps running on the server. */
   detach(): void {
+    this.generation++
+    this.starting = null
     const session = this.session
     this.session = null
     if (!session) return
@@ -110,8 +122,14 @@ export class RemoteDisplay {
     return { ok: false, detail: r.error ?? (r.stderr.trim().slice(-300) || `exit ${r.code}`) }
   }
 
-  private async launch(client: Client, width: number, height: number): Promise<DisplayStartResult> {
+  private async launch(
+    client: Client,
+    width: number,
+    height: number,
+    generation: number,
+  ): Promise<DisplayStartResult> {
     const uploadError = await uploadScript(client)
+    if (generation !== this.generation) return { ok: false, error: 'notConnected' }
     if (uploadError) return { ok: false, error: 'startFailed', detail: uploadError }
 
     const r = await exec(
@@ -119,6 +137,7 @@ export class RemoteDisplay {
       `${SCRIPT} attach ${width} ${height} ${SESSION_IDLE_LIMIT_S}`,
       ATTACH_TIMEOUT_MS,
     )
+    if (generation !== this.generation) return { ok: false, error: 'notConnected' }
     const error = findLine(r.stdout, 'ERROR ')
     if (error) {
       const [, code, ...rest] = error.split(' ')
@@ -137,7 +156,7 @@ export class RemoteDisplay {
       const detail = r.error ?? (r.stderr.trim().slice(-300) || 'No READY line from the server')
       return { ok: false, error: 'startFailed', detail }
     }
-    return this.openBridge(client, {
+    return this.openBridge(client, generation, {
       display: Number(ready[1]),
       port: Number(ready[2]),
       password: ready[3],
@@ -148,6 +167,7 @@ export class RemoteDisplay {
 
   private openBridge(
     client: Client,
+    generation: number,
     info: { display: number; port: number; password: string; xauthority: string; reused: boolean },
   ): Promise<DisplayStartResult> {
     const token = randomBytes(18).toString('base64url')
@@ -183,6 +203,12 @@ export class RemoteDisplay {
 
     return new Promise<DisplayStartResult>((resolve) => {
       bridge.on('listening', () => {
+        // The connection dropped while the bridge was opening: it would forward over a dead client.
+        if (generation !== this.generation) {
+          bridge.close()
+          resolve({ ok: false, error: 'notConnected' })
+          return
+        }
         const { port } = bridge.address() as AddressInfo
         const url = `ws://127.0.0.1:${port}${path}`
         const { reused, ...rest } = info

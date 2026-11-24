@@ -111,6 +111,8 @@ export function registerIpcHandlers(): void {
       if (!client) return { ok: false, error: 'notConnected' }
       // A new shell gets the desktop's DISPLAY; an open one is only redrawn.
       const env = shell.isOpen ? null : await display.waitForEnvironment()
+      // The wait can take a while: the connection may have dropped (or been replaced) meanwhile.
+      if (ssh.activeClient !== client) return { ok: false, error: 'notConnected' }
       return shell.open(client, cols, rows, env)
     },
   )
@@ -150,6 +152,7 @@ export function registerIpcHandlers(): void {
     const client = ssh.activeClient
     if (!client) return { ok: false, error: 'notConnected' }
     const env = await display.waitForEnvironment()
+    if (ssh.activeClient !== client) return { ok: false, error: 'notConnected' }
     if (!env) return { ok: false, error: 'noDisplay' }
     return launch(client, launcher, env)
   })
