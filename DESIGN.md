@@ -127,7 +127,7 @@ Stage 5 implemented the simpler behavior (the session always ends when the exec 
 - `stop` signals every own process whose environment has `DISPLAY=:N` (login shells excluded, so the app's terminal survives), then Xvnc, and removes the folder.
 - Xvnc runs with `-MaxDisconnectionTime 86400`: a desktop with no viewer for 24 hours ends by itself.
 - noVNC connects non-shared, so opening the session on a second PC takes it over from the first.
-- The terminal shell is started as `env DISPLAY=:N XAUTHORITY=… SOGANGSSH_TERMINAL=1 $SHELL -l`, so GUI programs typed in it appear on the desktop; `stop` leaves this shell (and login shells) running. A new desktop tries the previous display number first, so the terminal's `DISPLAY` usually stays valid after a restart.
+- The terminal shell is started as `env DISPLAY=:N XAUTHORITY=… SOGANGSSH_TERMINAL=1 $SHELL -l`, so GUI programs typed in it appear on the desktop; `stop` leaves only this shell itself (and login shells) running: everything started from it, including scripts such as a simulation runner, carries the same marker and is stopped like any other program on the desktop. A new desktop tries the previous display number first, so the terminal's `DISPLAY` usually stays valid after a restart.
 
 The school server has TigerVNC 1.8 (`Xvnc` only, no `vncserver` wrapper), so the app starts `Xvnc` itself. Because the server is shared, the VNC port accepts only local connections and requires a per-session random password, and the X display requires a cookie, so other users on the same server cannot view or type into the session.
 

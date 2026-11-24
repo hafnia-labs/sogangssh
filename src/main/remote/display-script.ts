@@ -55,30 +55,41 @@ xvnc_alive() {
   tr '\0' ' ' < "/proc/$XPID/cmdline" 2>/dev/null | grep -q "Xvnc :$N "
 }
 
-# Signal every own process that runs on display N (programs, window manager, simulations they
-# started). Shells are kept: login shells ("-csh") and the app's terminal, a shell started with
-# DISPLAY and SOGANGSSH_TERMINAL=1 so programs typed in it land on the desktop. (csh drops its
-# "-l" argument from its command line, so the marker variable identifies it.)
-signal_programs() {
+has_terminal_marker() {
+  { tr '\0' '\n' < "/proc/$1/environ"; } 2>/dev/null | grep -qx "SOGANGSSH_TERMINAL=1"
+}
+
+# Print every own process that runs on display N (programs, window manager, simulations and the
+# scripts that drive them). Left out: login shells ("-csh") and the app's terminal shell itself.
+# That shell is started with DISPLAY and SOGANGSSH_TERMINAL=1 so programs typed in it land on the
+# desktop. Everything started from it inherits the marker, so only the topmost marked process (its
+# parent has no marker) is the terminal; a marked process with a marked parent is listed.
+display_programs() {
   [ -n "$N" ] || return 0
   for p in $(ps -u "$(id -u)" -o pid=); do
     [ "$p" = "$$" ] && continue
-    [ -r "/proc/$p/environ" ] || continue
-    ENV=$(tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null)
-    echo "$ENV" | grep -qx "DISPLAY=:$N" || continue
-    case "$(tr '\0' '\n' < "/proc/$p/cmdline" 2>/dev/null | head -n 1)" in
+    { tr '\0' '\n' < "/proc/$p/environ"; } 2>/dev/null | grep -qx "DISPLAY=:$N" || continue
+    case "$({ tr '\0' '\n' < "/proc/$p/cmdline"; } 2>/dev/null | head -n 1)" in
       -*) continue ;;
-      *sh) echo "$ENV" | grep -qx "SOGANGSSH_TERMINAL=1" && continue ;;
     esac
-    kill "-$1" "$p" 2>/dev/null
+    if has_terminal_marker "$p"; then
+      parent=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d ' ')
+      [ -n "$parent" ] && has_terminal_marker "$parent" || continue
+    fi
+    echo "$p"
   done
 }
 
+# The list is taken once, before any signal: a stopped runner script leaves its children orphaned
+# (their parent becomes init), and on a second look they would pass for the terminal shell.
 stop_session() {
-  signal_programs TERM
+  TARGETS=$(display_programs)
+  [ -n "$TARGETS" ] && kill -TERM $TARGETS 2>/dev/null
   xvnc_alive && kill "$XPID" 2>/dev/null
   sleep 2
-  signal_programs KILL
+  # Also catch anything started in the meantime.
+  TARGETS="$TARGETS $(display_programs)"
+  [ -n "$(echo $TARGETS)" ] && kill -KILL $TARGETS 2>/dev/null
   xvnc_alive && kill -9 "$XPID" 2>/dev/null
   rm -rf "$SESSION"
 }
