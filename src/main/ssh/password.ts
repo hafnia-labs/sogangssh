@@ -5,12 +5,15 @@ const TIMEOUT_MS = 30_000
 const MAX_LENGTH = 256
 
 // `passwd` prompts with LC_ALL=C (checked on the school server: passwd 0.79, PAM 1.1.8).
+// On a first login with an expired password, sshd runs `passwd` itself and ignores the command,
+// so the prompts can follow the server's locale: Korean forms are matched too (best effort).
 // The retype prompt also contains "new password", so it is checked first.
-const CURRENT_PROMPT = /current[^\n]*password:\s*$/i
-const RETYPE_PROMPT = /retype[^\n]*password:\s*$/i
-const NEW_PROMPT = /new[^\n]*password:\s*$/i
-const SUCCESS = /updated successfully/i
-const AUTH_ERROR = /authentication token manipulation error|authentication failure/i
+const CURRENT_PROMPT = /(current[^\n]*password|현재[^\n]*암호):\s*$/i
+const RETYPE_PROMPT = /(retype[^\n]*password|암호[^\n]*재입력|재입력[^\n]*암호):\s*$/i
+const NEW_PROMPT = /(new[^\n]*password|새[^\n]*암호):\s*$/i
+const SUCCESS = /updated successfully|성공적으로[^\n]*(업데이트|변경)/i
+const AUTH_ERROR =
+  /authentication token manipulation error|authentication failure|인증 토큰 조작 오류|인증 실패/i
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHAR = /[\x00-\x1f\x7f]/
 
@@ -69,7 +72,8 @@ export function changePassword(
   function startPasswd(resolve: (result: PasswordChangeResult) => void): void {
     client.exec(
       'env LC_ALL=C passwd',
-      { pty: { term: 'dumb', rows: 24, cols: 200 } },
+      // The env request also asks for English prompts where sshd accepts it (AcceptEnv LC_*).
+      { pty: { term: 'dumb', rows: 24, cols: 200 }, env: { LC_ALL: 'C', LANG: 'C' } },
       (err, channel) => {
         if (err) {
           resolve({ ok: false, error: 'failed', detail: err.message })

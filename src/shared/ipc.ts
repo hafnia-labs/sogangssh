@@ -4,6 +4,7 @@ export const IpcChannel = {
   sshConnect: 'ssh:connect',
   sshDisconnect: 'ssh:disconnect',
   sshStatus: 'ssh:status',
+  sshChangeExpiredPassword: 'ssh:changeExpiredPassword',
   terminalOpen: 'terminal:open',
   terminalInput: 'terminal:input',
   terminalResize: 'terminal:resize',
@@ -151,6 +152,8 @@ export type ConnectErrorCode =
   | 'hostKeyUnknown'
   | 'hostKeyChanged'
   | 'alreadyConnected'
+  /** First login: the initial password has expired and must be changed (`ssh:changeExpiredPassword`). */
+  | 'passwordExpired'
   | 'unknown'
 
 export type ConnectResult =

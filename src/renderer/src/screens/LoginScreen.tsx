@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { BrandName } from '@/components/app/BrandName'
+import { FirstPasswordDialog } from '@/components/app/FirstPasswordDialog'
 import { GuideMascot } from '@/components/app/GuideMascot'
 import { GuideToggle } from '@/components/app/GuideToggle'
 import { LanguageToggle } from '@/components/app/LanguageToggle'
@@ -51,11 +53,14 @@ export function LoginScreen({ onLogin }: Props) {
   const [error, setError] = useState<LoginError | null>(null)
   const [pending, setPending] = useState(false)
   const [hostKey, setHostKey] = useState<PendingHostKey | null>(null)
+  // First login: the initial password has expired and must be changed before anything else.
+  const [expired, setExpired] = useState(false)
   const hostRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => hostRef.current?.focus(), [])
 
-  async function connect(trustFingerprint?: string) {
+  /** `loginPassword` overrides the field (the new password right after a first-login change). */
+  async function connect(trustFingerprint?: string, loginPassword = password) {
     const portNumber = Number(port)
     setError(null)
     setPending(true)
@@ -65,7 +70,7 @@ export function LoginScreen({ onLogin }: Props) {
         host: host.trim(),
         port: portNumber,
         username: user.trim(),
-        password,
+        password: loginPassword,
         trustFingerprint,
       })
     } catch (err) {
@@ -76,6 +81,10 @@ export function LoginScreen({ onLogin }: Props) {
     if (result.ok) {
       setPassword('')
       onLogin({ host: result.host, port: result.port, username: result.username })
+      return
+    }
+    if (result.error === 'passwordExpired') {
+      setExpired(true)
       return
     }
     if (result.error === 'hostKeyUnknown' && result.fingerprint) {
@@ -204,6 +213,25 @@ export function LoginScreen({ onLogin }: Props) {
         </CardContent>
       </Card>
       <GuideMascot screen="login" />
+
+      {expired && (
+        <FirstPasswordDialog
+          current={password}
+          onChanged={(next) => {
+            setExpired(false)
+            setPassword(next)
+            toast.success(t.firstPassword.success)
+            // Log in again with the new password (the host key is already trusted).
+            void connect(undefined, next)
+          }}
+          onCancel={() => {
+            setExpired(false)
+            setPassword('')
+            // Close the connection that was kept for the change.
+            void window.api.ssh.disconnect()
+          }}
+        />
+      )}
 
       <AlertDialog open={hostKey !== null} onOpenChange={(open) => !open && setHostKey(null)}>
         <AlertDialogContent>

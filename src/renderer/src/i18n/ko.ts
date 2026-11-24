@@ -26,6 +26,7 @@ export const ko = {
     authFailed: '아이디 또는 비밀번호가 맞지 않습니다.',
     otpRequired: '이 서버는 추가 인증(OTP)을 요구합니다. 아직 지원하지 않는 방식입니다.',
     hostKeyUnknown: '서버를 처음 확인하는 중입니다.',
+    passwordExpired: '첫 로그인이라 비밀번호를 먼저 바꿔야 합니다.',
     hostKeyChanged:
       '서버의 보안 키가 이전과 다릅니다. 안전을 위해 접속을 막았습니다. 전산 담당자에게 서버 키가 바뀌었는지 확인하세요.',
     alreadyConnected: '이미 접속되어 있습니다.',
@@ -132,6 +133,14 @@ export const ko = {
     confirm: '세션 종료',
     ending: '종료하는 중…',
     failed: '세션을 종료하지 못했습니다.',
+  },
+  firstPassword: {
+    title: '첫 로그인: 비밀번호 변경',
+    description:
+      '처음 받은 비밀번호는 만료되어 있어서, 새 비밀번호로 바꿔야 서버를 쓸 수 있습니다. 바꾸면 새 비밀번호로 바로 다시 로그인합니다.',
+    hint: '8자 이상으로, 대문자·소문자·숫자·특수문자를 섞어 주세요. 사전에 있는 단어, 학번, 같은 글자 반복은 피하세요.',
+    submit: '바꾸고 로그인',
+    success: '비밀번호를 바꿨습니다. 다음부터는 새 비밀번호로 로그인하세요.',
   },
   changePassword: {
     title: '서버 비밀번호 변경',

@@ -32,6 +32,9 @@ const api = {
     connect: (req: ConnectRequest): Promise<ConnectResult> =>
       ipcRenderer.invoke(IpcChannel.sshConnect, req),
     disconnect: (): Promise<void> => ipcRenderer.invoke(IpcChannel.sshDisconnect),
+    /** First login: change the expired password on the kept connection, then log in again. */
+    changeExpiredPassword: (req: PasswordChangeRequest): Promise<PasswordChangeResult> =>
+      ipcRenderer.invoke(IpcChannel.sshChangeExpiredPassword, req),
     onStatus: (listener: (status: SshStatus) => void) =>
       subscribe<SshStatus>(IpcChannel.sshStatus, listener),
   },

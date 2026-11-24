@@ -99,6 +99,15 @@ Accounts on the school server are local accounts (`/etc/passwd` and `/etc/shadow
 - Unknown outcome: once the new password has been typed twice, the server may already have saved it. If the change is then cut off (connection dropped, time limit, channel error) without a success or error line, the app does not call it a failure: it says the password may have changed and to try the new password first at the next login, then the old one.
 - The SSH session that is already open stays logged in. The new password is needed from the next login.
 
+### First login (expired initial password)
+
+New accounts get an initial password that has already expired, so the first login must change it. With an expired password, OpenSSH (with PAM) still accepts the login, but every channel the client opens runs `passwd` instead of the requested command ("Your password has expired. You must change your password now and login again!"), and port forwarding is refused. Without handling this, the app's own scripts would be fed to `passwd` and the desktop would never start.
+
+- Right after authentication, before anything else runs, main opens one exec channel with a harmless marker command and no input. If the marker comes back, the login is normal. If the output is the expired-password message or a `passwd` prompt instead, the login is reported as `passwordExpired`. The connection is kept aside (not "connected": no desktop, terminal or status panel starts on it).
+- The login screen then asks only for the new password, twice, with a short hint on good passwords. The current password is the one just typed; the renderer sends it again with the new one, so main never keeps it.
+- Main answers that `passwd` the same way as the toolbar change (PTY, prompts matched by text, English and Korean), closes the kept connection (the server ends it after the change anyway), and the renderer logs in again with the new password.
+- Results are the same as for the toolbar change (`rejected` shows the server's reason; `maybeChanged` if it was cut off after the confirmation). Cancelling closes the kept connection.
+
 ## How it works and architecture
 
 The app and the server communicate over a single SSH connection, inside which a shell channel and a VNC forwarding channel are open at the same time.

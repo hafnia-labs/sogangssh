@@ -28,6 +28,7 @@ export const en: Messages = {
     authFailed: 'The username or password is incorrect.',
     otpRequired: 'This server asks for additional verification (OTP), which is not supported yet.',
     hostKeyUnknown: 'Checking this server for the first time.',
+    passwordExpired: 'This is your first login: change your password first.',
     hostKeyChanged:
       'The server’s security key has changed, so the connection was blocked to keep you safe. Ask your IT administrator whether the server key was changed.',
     alreadyConnected: 'Already connected.',
@@ -136,6 +137,14 @@ export const en: Messages = {
     confirm: 'End session',
     ending: 'Ending…',
     failed: 'Could not end the session.',
+  },
+  firstPassword: {
+    title: 'First login: change your password',
+    description:
+      'The password you were given has expired, so the server only works after you set a new one. The app logs you in again with it right away.',
+    hint: 'Use at least 8 characters and mix upper- and lowercase letters, digits and symbols. Avoid dictionary words, your student number and repeated characters.',
+    submit: 'Change and log in',
+    success: 'Password changed. Use the new password from now on.',
   },
   changePassword: {
     title: 'Change server password',

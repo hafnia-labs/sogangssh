@@ -91,6 +91,14 @@ export function registerIpcHandlers(): void {
     return ssh.connect(req)
   })
 
+  ipcMain.handle(
+    IpcChannel.sshChangeExpiredPassword,
+    (event, req: unknown): Promise<PasswordChangeResult> | PasswordChangeResult => {
+      if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
+      return ssh.changeExpiredPassword(req)
+    },
+  )
+
   ipcMain.handle(IpcChannel.sshDisconnect, (event) => {
     if (!isTrustedSender(event)) return
     ssh.disconnect()
