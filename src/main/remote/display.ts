@@ -1,0 +1,197 @@
+import { randomBytes } from 'node:crypto'
+import type { AddressInfo } from 'node:net'
+import type { Client } from 'ssh2'
+import { WebSocketServer, type WebSocket } from 'ws'
+import type { DisplayEndResult, DisplayStartResult } from '../../shared/ipc'
+import { DISPLAY_SCRIPT } from './display-script'
+import { exec } from './exec'
+
+const ATTACH_TIMEOUT_MS = 40_000
+const STOP_TIMEOUT_MS = 20_000
+
+/**
+ * A desktop that nobody has been connected to for this long ends by itself (Xvnc
+ * MaxDisconnectionTime), so a forgotten session does not hold TCAD licenses for days.
+ */
+export const SESSION_IDLE_LIMIT_S = 24 * 60 * 60
+
+export type DisplayEnvironment = { display: string; xauthority: string }
+
+type Session = {
+  bridge: WebSocketServer
+  url: string
+  password: string
+  display: number
+  port: number
+  xauthority: string
+}
+
+const clampSize = (n: unknown, fallback: number) =>
+  typeof n === 'number' && Number.isInteger(n) && n >= 320 && n <= 7680 ? n : fallback
+
+// The login shell is csh (short line limits, its own quoting), so exec commands stay plain:
+// the script is streamed over stdin into a file, then run with sh.
+const UPLOAD_COMMAND =
+  'mkdir -p ~/.sogangssh && chmod 700 ~/.sogangssh && cat > ~/.sogangssh/display.sh'
+const SCRIPT = 'sh ~/.sogangssh/display.sh'
+
+async function uploadScript(client: Client): Promise<string | null> {
+  const r = await exec(client, UPLOAD_COMMAND, ATTACH_TIMEOUT_MS, DISPLAY_SCRIPT)
+  if (r.error) return r.error
+  return r.code === 0 ? null : r.stderr.trim() || `exit ${r.code}`
+}
+
+const findLine = (text: string, prefix: string) =>
+  text
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.startsWith(prefix))
+
+/**
+ * The user's persistent remote desktop (Xvnc on the server), bridged to noVNC:
+ * noVNC (WebSocket) → local ws server → SSH forwardOut → server localhost:<port> (Xvnc).
+ * The desktop lives on the server, independent of this app: `detach()` only closes the local
+ * bridge, `end()` stops the desktop and everything on it.
+ */
+export class RemoteDisplay {
+  private session: Session | null = null
+  private starting: Promise<DisplayStartResult> | null = null
+
+  /** DISPLAY and XAUTHORITY for launching GUI programs on this session. */
+  get environment(): DisplayEnvironment | null {
+    if (!this.session) return null
+    return { display: `:${this.session.display}`, xauthority: this.session.xauthority }
+  }
+
+  /**
+   * The environment once the desktop is attached. The terminal and the display panel open at
+   * the same time, so wait briefly for an attach to begin, then for it to finish.
+   */
+  async waitForEnvironment(): Promise<DisplayEnvironment | null> {
+    for (let i = 0; i < 30 && !this.session && !this.starting; i++) {
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    if (this.starting) await this.starting
+    return this.environment
+  }
+
+  /** Reattach to the user's desktop, or start one if none is running. */
+  attach(client: Client, width: unknown, height: unknown): Promise<DisplayStartResult> {
+    if (this.session) {
+      const { url, password, display } = this.session
+      return Promise.resolve({ ok: true, url, password, display, reused: true })
+    }
+    if (this.starting) return this.starting
+    this.starting = this.launch(client, clampSize(width, 1600), clampSize(height, 900)).finally(
+      () => {
+        this.starting = null
+      },
+    )
+    return this.starting
+  }
+
+  /** Close the local bridge. The desktop keeps running on the server. */
+  detach(): void {
+    const session = this.session
+    this.session = null
+    if (!session) return
+    for (const ws of session.bridge.clients) ws.terminate()
+    session.bridge.close()
+  }
+
+  /** Stop the desktop, its window manager and every program on it. */
+  async end(client: Client): Promise<DisplayEndResult> {
+    if (this.starting) await this.starting
+    this.detach()
+    const uploadError = await uploadScript(client)
+    if (uploadError) return { ok: false, detail: uploadError }
+    const r = await exec(client, `${SCRIPT} stop`, STOP_TIMEOUT_MS)
+    if (findLine(r.stdout, 'STOPPED')) return { ok: true }
+    return { ok: false, detail: r.error ?? (r.stderr.trim().slice(-300) || `exit ${r.code}`) }
+  }
+
+  private async launch(client: Client, width: number, height: number): Promise<DisplayStartResult> {
+    const uploadError = await uploadScript(client)
+    if (uploadError) return { ok: false, error: 'startFailed', detail: uploadError }
+
+    const r = await exec(
+      client,
+      `${SCRIPT} attach ${width} ${height} ${SESSION_IDLE_LIMIT_S}`,
+      ATTACH_TIMEOUT_MS,
+    )
+    const error = findLine(r.stdout, 'ERROR ')
+    if (error) {
+      const [, code, ...rest] = error.split(' ')
+      return {
+        ok: false,
+        error: code === 'noXvnc' ? 'noXvnc' : 'startFailed',
+        detail: rest.join(' '),
+      }
+    }
+    const ready =
+      /^READY display=(\d+) port=(\d+) password=(\S+) xauthority=(\S+) reused=([01])$/.exec(
+        findLine(r.stdout, 'READY ') ?? '',
+      )
+    if (!ready) {
+      if (r.error === 'timeout') return { ok: false, error: 'timeout' }
+      const detail = r.error ?? (r.stderr.trim().slice(-300) || 'No READY line from the server')
+      return { ok: false, error: 'startFailed', detail }
+    }
+    return this.openBridge(client, {
+      display: Number(ready[1]),
+      port: Number(ready[2]),
+      password: ready[3],
+      xauthority: ready[4],
+      reused: ready[5] === '1',
+    })
+  }
+
+  private openBridge(
+    client: Client,
+    info: { display: number; port: number; password: string; xauthority: string; reused: boolean },
+  ): Promise<DisplayStartResult> {
+    const token = randomBytes(18).toString('base64url')
+    const path = `/vnc/${token}`
+    const bridge = new WebSocketServer({
+      host: '127.0.0.1',
+      port: 0,
+      path,
+      // noVNC asks for the "binary" subprotocol when it offers one.
+      handleProtocols: (protocols) => (protocols.has('binary') ? 'binary' : false),
+    })
+
+    bridge.on('connection', (ws: WebSocket) => {
+      ws.binaryType = 'nodebuffer'
+      client.forwardOut('127.0.0.1', 0, '127.0.0.1', info.port, (err, stream) => {
+        if (err) {
+          ws.close(1011, 'forward failed')
+          return
+        }
+        ws.on('message', (data: Buffer) => stream.write(data))
+        stream.on('data', (data: Buffer) => {
+          if (ws.readyState === ws.OPEN) ws.send(data)
+        })
+        const closeBoth = () => {
+          stream.end()
+          if (ws.readyState === ws.OPEN) ws.close()
+        }
+        ws.on('close', closeBoth)
+        ws.on('error', closeBoth)
+        stream.on('close', closeBoth)
+      })
+    })
+
+    return new Promise<DisplayStartResult>((resolve) => {
+      bridge.on('listening', () => {
+        const { port } = bridge.address() as AddressInfo
+        const url = `ws://127.0.0.1:${port}${path}`
+        const { reused, ...rest } = info
+        this.session = { bridge, url, ...rest }
+        resolve({ ok: true, url, password: info.password, display: info.display, reused })
+      })
+      bridge.on('error', (err) => {
+        resolve({ ok: false, error: 'startFailed', detail: err.message })
+      })
+    })
+  }
+}

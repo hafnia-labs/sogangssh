@@ -1,0 +1,15 @@
+node_modules
+out
+dist
+release
+.eslintcache
+*.log
+.DS_Store
+.env
+.env.*
+# 테스트용 키나 접속 정보가 실수로 커밋되지 않도록
+*.pem
+id_ed25519*
+*.tsbuildinfo
+# Personal Claude Code notes
+CLAUDE.local.md
