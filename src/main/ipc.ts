@@ -73,7 +73,7 @@ async function closeApp(choice: unknown): Promise<DisplayEndResult> {
   if (choice !== 'keep' && choice !== 'end') return { ok: true }
   if (choice === 'end') {
     const client = ssh.activeClient
-    if (!client) return { ok: false, detail: 'Not connected' }
+    if (!client) return { ok: false, error: 'notConnected' }
     const result = await display.end(client)
     if (!result.ok) return result
   }
@@ -129,9 +129,9 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle(IpcChannel.displayEnd, (event): Promise<DisplayEndResult> | DisplayEndResult => {
-    if (!isTrustedSender(event)) return { ok: false, detail: 'Untrusted sender' }
+    if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
     const client = ssh.activeClient
-    if (!client) return { ok: false, detail: 'Not connected' }
+    if (!client) return { ok: false, error: 'notConnected' }
     return display.end(client)
   })
 
@@ -158,7 +158,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle(IpcChannel.appClose, (event, choice: unknown) => {
-    if (!isTrustedSender(event)) return { ok: false, detail: 'Untrusted sender' }
+    if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
     return closeApp(choice)
   })
 

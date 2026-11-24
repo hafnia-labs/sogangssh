@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n/context'
-import type { CloseChoice } from '../../../../shared/ipc'
+import type { CloseChoice, DisplayEndResult } from '../../../../shared/ipc'
 
 /**
  * Asked when the app closes while connected: keep the remote desktop running on the server for
@@ -20,12 +20,15 @@ export function ExitDialog() {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<CloseChoice | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failure, setFailure] = useState<Extract<DisplayEndResult, { ok: false }> | null>(null)
+  // Technical detail as-is; "not connected" is a translated message.
+  const error =
+    failure && (failure.error === 'notConnected' ? t.display.errors.notConnected : failure.detail)
 
   useEffect(
     () =>
       window.api.app.onCloseRequested(() => {
-        setError(null)
+        setFailure(null)
         setOpen(true)
       }),
     [],
@@ -37,11 +40,11 @@ export function ExitDialog() {
       return
     }
     setBusy(choice)
-    setError(null)
+    setFailure(null)
     const result = await window.api.app.close(choice)
     // On success the app quits; we only get here to show a failure.
     setBusy(null)
-    if (!result.ok) setError(result.detail ?? '')
+    if (!result.ok) setFailure(result)
   }
 
   return (
@@ -51,7 +54,7 @@ export function ExitDialog() {
           <AlertDialogTitle>{t.exit.title}</AlertDialogTitle>
           <AlertDialogDescription>{t.exit.description}</AlertDialogDescription>
         </AlertDialogHeader>
-        {error !== null && (
+        {failure !== null && (
           <p className="text-destructive text-sm">
             {t.exit.failed}
             {error && <span className="block font-mono text-xs break-all">{error}</span>}

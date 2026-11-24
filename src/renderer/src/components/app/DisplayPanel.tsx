@@ -10,7 +10,7 @@ type State =
   | { kind: 'starting' }
   | { kind: 'connecting' }
   | { kind: 'connected' }
-  | { kind: 'error'; code: DisplayErrorCode | 'vncFailed'; detail?: string }
+  | { kind: 'error'; code: DisplayErrorCode | 'vncFailed' | 'vncAuthFailed'; detail?: string }
   | { kind: 'ended' }
 
 type Props = {
@@ -73,7 +73,7 @@ export function DisplayPanel({ status, stopped, onStartNew, onDisplay, onBackToL
           setState(clean ? { kind: 'ended' } : { kind: 'error', code: 'vncFailed' })
         })
         rfb.addEventListener('securityfailure', () => {
-          if (!cancelled) setState({ kind: 'error', code: 'vncFailed', detail: 'security failure' })
+          if (!cancelled) setState({ kind: 'error', code: 'vncAuthFailed' })
         })
       })
 

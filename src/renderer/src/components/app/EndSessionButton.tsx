@@ -24,15 +24,18 @@ export function EndSessionButton({ disabled, onEnd }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [ending, setEnding] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [failure, setFailure] = useState<Extract<DisplayEndResult, { ok: false }> | null>(null)
+  // Technical detail as-is; "not connected" is a translated message.
+  const error =
+    failure && (failure.error === 'notConnected' ? t.display.errors.notConnected : failure.detail)
 
   const end = async () => {
     setEnding(true)
-    setError(null)
+    setFailure(null)
     const result = await onEnd()
     setEnding(false)
     if (result.ok) setOpen(false)
-    else setError(result.detail ?? '')
+    else setFailure(result)
   }
 
   return (
@@ -44,7 +47,7 @@ export function EndSessionButton({ disabled, onEnd }: Props) {
             size="icon-sm"
             disabled={disabled}
             onClick={() => {
-              setError(null)
+              setFailure(null)
               setOpen(true)
             }}
             aria-label={t.toolbar.endSession}
@@ -60,7 +63,7 @@ export function EndSessionButton({ disabled, onEnd }: Props) {
             <AlertDialogTitle>{t.endSession.title}</AlertDialogTitle>
             <AlertDialogDescription>{t.endSession.description}</AlertDialogDescription>
           </AlertDialogHeader>
-          {error !== null && (
+          {failure !== null && (
             <p className="text-destructive text-sm">
               {t.endSession.failed}
               {error && <span className="block font-mono text-xs break-all">{error}</span>}

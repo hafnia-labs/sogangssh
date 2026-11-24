@@ -116,10 +116,14 @@ export class RemoteDisplay {
     if (this.starting) await this.starting
     this.detach()
     const uploadError = await uploadScript(client)
-    if (uploadError) return { ok: false, detail: uploadError }
+    if (uploadError) return { ok: false, error: 'failed', detail: uploadError }
     const r = await exec(client, `${SCRIPT} stop`, STOP_TIMEOUT_MS)
     if (findLine(r.stdout, 'STOPPED')) return { ok: true }
-    return { ok: false, detail: r.error ?? (r.stderr.trim().slice(-300) || `exit ${r.code}`) }
+    return {
+      ok: false,
+      error: 'failed',
+      detail: r.error ?? (r.stderr.trim().slice(-300) || `exit ${r.code}`),
+    }
   }
 
   private async launch(

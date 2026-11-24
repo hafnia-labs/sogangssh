@@ -78,7 +78,10 @@ export type DisplayStartResult =
   | { ok: false; error: DisplayErrorCode; detail?: string }
 
 /** Result of ending the remote desktop and every program on it. */
-export type DisplayEndResult = { ok: true } | { ok: false; detail?: string }
+export type DisplayEndResult =
+  | { ok: true }
+  /** `detail` is technical output (server stderr), shown as-is; the message comes from `error`. */
+  | { ok: false; error: 'notConnected' | 'failed'; detail?: string }
 
 /**
  * Answer to the exit question: keep the remote desktop running for the next login, end it,

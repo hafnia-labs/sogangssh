@@ -100,6 +100,7 @@ export const ko = {
       startFailed: '가상 화면을 시작하지 못했습니다.',
       timeout: '가상 화면 준비가 너무 오래 걸립니다. 다시 시도하세요.',
       vncFailed: '가상 화면 연결이 끊겼습니다.',
+      vncAuthFailed: '가상 화면이 세션 비밀번호를 거부했습니다. 다시 연결해 보세요.',
     },
     reconnecting: '서버와 다시 연결하는 중입니다…',
     disconnected: '서버와 연결이 끊겼습니다. 네트워크와 VPN을 확인하세요.',

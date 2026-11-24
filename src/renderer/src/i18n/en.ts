@@ -104,6 +104,7 @@ export const en: Messages = {
       startFailed: 'Could not start the virtual display.',
       timeout: 'The virtual display is taking too long to start. Try again.',
       vncFailed: 'Lost the connection to the virtual display.',
+      vncAuthFailed: 'The virtual display rejected the session password. Try reconnecting.',
     },
     reconnecting: 'Reconnecting to the server…',
     disconnected: 'Lost connection to the server. Check your network and VPN.',
