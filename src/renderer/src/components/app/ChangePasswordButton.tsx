@@ -49,10 +49,11 @@ export function ChangePasswordButton({ disabled }: Props) {
     if (next === current) return setError({ kind: 'form', key: 'errorSame' })
     setError(null)
     setPending(true)
-    const result = await window.api.password.change({ current, next }).catch((err: Error) => ({
+    // A thrown IPC call carries Electron's English text, so show only the translated message.
+    const result = await window.api.password.change({ current, next }).catch(() => ({
       ok: false as const,
       error: 'failed' as const,
-      detail: err.message,
+      detail: undefined,
     }))
     setPending(false)
     if (result.ok) {

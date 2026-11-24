@@ -58,6 +58,15 @@ export function changePassword(
   const secrets = [current, next]
 
   return new Promise((resolve) => {
+    // ssh2 throws (instead of calling back) when the connection is already gone.
+    try {
+      startPasswd(resolve)
+    } catch {
+      resolve({ ok: false, error: 'notConnected' })
+    }
+  })
+
+  function startPasswd(resolve: (result: PasswordChangeResult) => void): void {
     client.exec(
       'env LC_ALL=C passwd',
       { pty: { term: 'dumb', rows: 24, cols: 200 } },
@@ -83,10 +92,10 @@ export function changePassword(
          * confirmation was sent and with no server verdict yet, the password may already be saved:
          * calling that a plain failure would send the user to the next login with the wrong one.
          */
-        const cutOff = (detail?: string): PasswordChangeResult => {
+        const cutOff = (otherwise: PasswordChangeResult): PasswordChangeResult => {
           const verdictSeen = rejected !== null || AUTH_ERROR.test(sinceRetype) || SUCCESS.test(all)
           if (retypeSent && !verdictSeen) return { ok: false, error: 'maybeChanged' }
-          return { ok: false, error: 'failed', detail }
+          return otherwise
         }
 
         const finish = (result: PasswordChangeResult) => {
@@ -97,7 +106,7 @@ export function changePassword(
         }
 
         const timer = setTimeout(() => {
-          finish(cutOff('timeout'))
+          finish(cutOff({ ok: false, error: 'timeout' }))
           channel.close()
         }, TIMEOUT_MS)
 
@@ -148,7 +157,9 @@ export function changePassword(
         channel.on('data', onOutput)
         channel.stderr.on('data', onOutput)
         // An 'error' event without a listener would crash the main process.
-        channel.on('error', (e: Error) => finish(cutOff(e.message)))
+        channel.on('error', (e: Error) =>
+          finish(cutOff({ ok: false, error: 'failed', detail: e.message })),
+        )
         channel.on('close', () => {
           if (rejected !== null) {
             finish({ ok: false, error: 'rejected', detail: rejected || undefined })
@@ -158,10 +169,10 @@ export function changePassword(
             // passwd ends before asking for a new password when the current one is wrong.
             finish({ ok: false, error: 'wrongPassword' })
           } else {
-            finish(cutOff(tail(all, secrets)))
+            finish(cutOff({ ok: false, error: 'failed', detail: tail(all, secrets) }))
           }
         })
       },
     )
-  })
+  }
 }

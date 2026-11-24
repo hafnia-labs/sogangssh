@@ -151,11 +151,13 @@ export const en: Messages = {
     errors: {
       notConnected: 'Not connected to the server.',
       invalidInput:
-        'The password contains a character that cannot be used (such as a line break) or is too long.',
+        'The password contains a character that cannot be used (such as a line break) or is too long. The new password must differ from the current one.',
       wrongPassword: 'The current password is incorrect.',
       rejected:
         'The server rejected the new password. Use a longer password that is harder to guess.',
       failed: 'Could not change the password.',
+      timeout: 'The server did not answer in time, so the password was not changed. Try again.',
+      busy: 'A password change is already running. Wait for it to finish.',
       maybeChanged:
         'The change was cut off, so it is not known whether the password changed. At the next login, try the new password first, then the current one.',
     },

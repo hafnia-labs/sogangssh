@@ -169,7 +169,7 @@ export function registerIpcHandlers(): void {
       const client = ssh.activeClient
       if (!client) return { ok: false, error: 'notConnected' }
       // One passwd at a time: a second dialog submit must not race the first.
-      if (changingPassword) return { ok: false, error: 'failed', detail: 'busy' }
+      if (changingPassword) return { ok: false, error: 'busy' }
       changingPassword = true
       try {
         return await changePassword(client, req)

@@ -109,6 +109,10 @@ export type PasswordChangeErrorCode =
   | 'wrongPassword'
   | 'rejected'
   | 'failed'
+  /** `passwd` did not finish within the time limit (before the new password was confirmed). */
+  | 'timeout'
+  /** Another password change is still running. */
+  | 'busy'
   /** Cut off after the new password was confirmed: it may or may not have been saved. */
   | 'maybeChanged'
 
