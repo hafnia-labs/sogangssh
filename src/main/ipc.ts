@@ -15,7 +15,6 @@ import { launchers } from './launchers'
 import { RemoteDisplay } from './remote/display'
 import { launch } from './remote/launch'
 import { ServerMonitor } from './remote/server-monitor'
-import { settings } from './settings'
 import { SshConnection } from './ssh/connection'
 import { changePassword, isValidPasswordRequest } from './ssh/password'
 import { RemoteShell } from './ssh/shell'
@@ -88,21 +87,13 @@ async function closeApp(choice: unknown): Promise<DisplayEndResult> {
 export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannel.sshConnect, async (event, req: unknown) => {
     if (!isTrustedSender(event)) return { ok: false, error: 'unknown', detail: 'Untrusted sender' }
-    const result = await ssh.connect(req)
-    if (result.ok) {
-      settings.setLastLogin({ host: result.host, port: result.port, username: result.username })
-    }
-    return result
+    // Nothing about the login is saved: the server, port and ID are typed every time.
+    return ssh.connect(req)
   })
 
   ipcMain.handle(IpcChannel.sshDisconnect, (event) => {
     if (!isTrustedSender(event)) return
     ssh.disconnect()
-  })
-
-  ipcMain.handle(IpcChannel.settingsGetLastLogin, (event) => {
-    if (!isTrustedSender(event)) return null
-    return settings.getLastLogin()
   })
 
   ipcMain.handle(

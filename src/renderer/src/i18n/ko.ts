@@ -7,11 +7,11 @@ export const ko = {
   login: {
     user: '아이디',
     password: '비밀번호',
-    advanced: '고급 설정',
     host: '서버 주소',
     port: '포트',
     submit: '로그인',
     submitting: '접속 중…',
+    errorHost: '서버 주소를 입력하세요.',
     errorEmpty: '아이디와 비밀번호를 입력하세요.',
     errorPort: '포트는 1부터 65535 사이의 숫자여야 합니다.',
     technicalDetail: '자세한 내용',
@@ -186,8 +186,8 @@ export const ko = {
         text: '학교 서버에서 TCAD를 쓰는 법을 알려 줄게. 먼저 로그인부터 해 보자.',
       },
       account: {
-        title: '아이디와 비밀번호',
-        text: '학교 서버 아이디와 비밀번호만 넣으면 돼. 서버 주소는 이미 들어 있어. 비밀번호는 저장하지 않으니까 매번 입력해 줘.',
+        title: '서버와 계정',
+        text: '연구실에서 받은 서버 주소와 포트, 그리고 내 아이디와 비밀번호를 넣어 줘. 앱은 아무것도 저장하지 않으니까 매번 입력해야 해.',
       },
       hostKey: {
         title: '처음 접속할 때',

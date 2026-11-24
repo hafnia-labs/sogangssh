@@ -21,13 +21,17 @@ export type LauncherConfig = {
 
 const SENTAURUS_HOME = '/TOOLS/SYNOPSYS/SENTAURUS/T-2022.03'
 
+// License servers come from the git-ignored `.env.local` at build time (server details are never
+// committed). Without them the variable is left out, so a user's own setting still applies.
+const licenseFile = (import.meta.env.MAIN_VITE_SNPSLMD_LICENSE_FILE ?? '').trim()
+
 const sentaurus = {
   env: {
     TCAD_HOME: SENTAURUS_HOME,
     // Sentaurus Workbench keeps its projects under STDB.
     STDB: '$HOME',
-    SNPSLMD_LICENSE_FILE: '<license-servers>',
-  },
+    ...(licenseFile ? { SNPSLMD_LICENSE_FILE: licenseFile } : {}),
+  } as Record<string, string>,
   path: [`${SENTAURUS_HOME}/bin`],
   cwd: '$HOME',
 }

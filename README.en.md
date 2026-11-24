@@ -8,7 +8,7 @@ The UI is available in Korean and English.
 
 ## What it does
 
-- **Login**: enter your ID and password only. The server address is built in, and the app remembers the server and ID of your last login (never the password). The server's host key is checked on every connection.
+- **Login**: enter the server address and port you got from your lab, then your ID and password. The app contains no server details and saves no login details. The server's host key is checked on every connection.
 - **Remote desktop**: starts a virtual display (TigerVNC `Xvnc`) on the server and shows it in the app through the SSH connection. You need no X server, X11 forwarding or VNC client on your PC.
 - **Persistent session**: each user has one remote desktop on the server. Closing the app asks whether to keep it running (long simulations continue, and the same screen comes back at the next login) or to end everything.
 - **Launchers**: toolbar buttons start Sentaurus Workbench and Sentaurus Visual with the TCAD environment and license servers already set, so you need no personal profile.

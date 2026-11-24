@@ -6,7 +6,6 @@ import {
   type DisplayEndResult,
   type DisplayStartResult,
   type ConnectResult,
-  type LastLogin,
   type PasswordChangeRequest,
   type PasswordChangeResult,
   type LauncherInfo,
@@ -40,10 +39,6 @@ const api = {
     /** Change the server account password (current and new are sent to `passwd` only). */
     change: (req: PasswordChangeRequest): Promise<PasswordChangeResult> =>
       ipcRenderer.invoke(IpcChannel.passwordChange, req),
-  },
-  settings: {
-    getLastLogin: (): Promise<LastLogin | null> =>
-      ipcRenderer.invoke(IpcChannel.settingsGetLastLogin),
   },
   terminal: {
     open: (cols: number, rows: number): Promise<TerminalOpenResult> =>

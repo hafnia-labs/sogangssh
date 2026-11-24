@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ChevronDown, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { BrandName } from '@/components/app/BrandName'
 import { GuideMascot } from '@/components/app/GuideMascot'
 import { GuideToggle } from '@/components/app/GuideToggle'
@@ -16,11 +16,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n/context'
-import { serverDefaults } from '@/config'
 import type { ConnectErrorCode, ConnectResult } from '../../../shared/ipc'
 
 export type Session = { host: string; port: number; username: string }
@@ -31,7 +29,7 @@ type Props = {
 
 // Errors are stored as codes so they re-render in the new language after a switch.
 type LoginError =
-  | { kind: 'form'; key: 'errorEmpty' | 'errorPort' }
+  | { kind: 'form'; key: 'errorHost' | 'errorEmpty' | 'errorPort' }
   | {
       kind: 'connect'
       code: ConnectErrorCode
@@ -46,35 +44,16 @@ export function LoginScreen({ onLogin }: Props) {
   const { t } = useI18n()
   const [user, setUser] = useState('')
   const [password, setPassword] = useState('')
-  const [host, setHost] = useState(serverDefaults.host)
-  const [port, setPort] = useState(String(serverDefaults.port))
+  // Every field starts empty: no server is built in and earlier logins are not remembered, so
+  // the app reveals nothing about how to reach the server.
+  const [host, setHost] = useState('')
+  const [port, setPort] = useState('')
   const [error, setError] = useState<LoginError | null>(null)
   const [pending, setPending] = useState(false)
   const [hostKey, setHostKey] = useState<PendingHostKey | null>(null)
-  const userRef = useRef<HTMLInputElement>(null)
-  const passwordRef = useRef<HTMLInputElement>(null)
+  const hostRef = useRef<HTMLInputElement>(null)
 
-  // Prefill the server and ID from this user's last successful login; first launch uses defaults.
-  useEffect(() => {
-    let cancelled = false
-    window.api.settings
-      .getLastLogin()
-      .then((last) => {
-        if (cancelled) return
-        if (last) {
-          setHost(last.host)
-          setPort(String(last.port))
-          setUser(last.username)
-          passwordRef.current?.focus()
-        } else {
-          userRef.current?.focus()
-        }
-      })
-      .catch(() => userRef.current?.focus())
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  useEffect(() => hostRef.current?.focus(), [])
 
   async function connect(trustFingerprint?: string) {
     const portNumber = Number(port)
@@ -114,13 +93,17 @@ export function LoginScreen({ onLogin }: Props) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!user.trim() || !password || !host.trim()) {
-      setError({ kind: 'form', key: 'errorEmpty' })
+    if (!host.trim()) {
+      setError({ kind: 'form', key: 'errorHost' })
       return
     }
     const portNumber = Number(port)
-    if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
+    if (!port.trim() || !Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
       setError({ kind: 'form', key: 'errorPort' })
+      return
+    }
+    if (!user.trim() || !password) {
+      setError({ kind: 'form', key: 'errorEmpty' })
       return
     }
     void connect()
@@ -146,12 +129,35 @@ export function LoginScreen({ onLogin }: Props) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4" noValidate data-tour="login-form">
+            <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="host">{t.login.host}</Label>
+                <Input
+                  id="host"
+                  ref={hostRef}
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="port">{t.login.port}</Label>
+                <Input
+                  id="port"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="user">{t.login.user}</Label>
               <Input
                 id="user"
-                ref={userRef}
-                autoComplete="username"
+                autoComplete="off"
+                spellCheck={false}
                 value={user}
                 onChange={(e) => setUser(e.target.value)}
               />
@@ -160,35 +166,12 @@ export function LoginScreen({ onLogin }: Props) {
               <Label htmlFor="password">{t.login.password}</Label>
               <Input
                 id="password"
-                ref={passwordRef}
                 type="password"
-                autoComplete="current-password"
+                autoComplete="off"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-
-            <Collapsible>
-              <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex items-center gap-1 text-xs">
-                {t.login.advanced}
-                <ChevronDown className="size-3.5 transition-transform group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="grid grid-cols-[1fr_5rem] gap-2 pt-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="host">{t.login.host}</Label>
-                  <Input id="host" value={host} onChange={(e) => setHost(e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="port">{t.login.port}</Label>
-                  <Input
-                    id="port"
-                    inputMode="numeric"
-                    value={port}
-                    onChange={(e) => setPort(e.target.value)}
-                  />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
 
             {error && (
               <div role="alert" className="text-destructive grid gap-1 text-sm">

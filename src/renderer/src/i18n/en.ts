@@ -8,11 +8,11 @@ export const en: Messages = {
   login: {
     user: 'Username',
     password: 'Password',
-    advanced: 'Advanced settings',
     host: 'Server address',
     port: 'Port',
     submit: 'Log in',
     submitting: 'Connecting…',
+    errorHost: 'Enter the server address.',
     errorEmpty: 'Enter your username and password.',
     errorPort: 'Port must be a number from 1 to 65535.',
     technicalDetail: 'Details',
@@ -191,8 +191,8 @@ export const en: Messages = {
         text: "I'll show you how to use TCAD on the school server. Let's start by logging in.",
       },
       account: {
-        title: 'ID and password',
-        text: 'Enter your school server ID and password. The server address is already filled in. The password is never saved, so enter it every time.',
+        title: 'Server and account',
+        text: 'Enter the server address and port you got from your lab, then your ID and password. The app saves none of them, so enter them every time.',
       },
       hostKey: {
         title: 'First connection',

@@ -4,7 +4,6 @@ export const IpcChannel = {
   sshConnect: 'ssh:connect',
   sshDisconnect: 'ssh:disconnect',
   sshStatus: 'ssh:status',
-  settingsGetLastLogin: 'settings:getLastLogin',
   terminalOpen: 'terminal:open',
   terminalInput: 'terminal:input',
   terminalResize: 'terminal:resize',
@@ -129,9 +128,6 @@ export type PasswordChangeErrorCode =
  */
 export type PasswordChangeResult =
   { ok: true } | { ok: false; error: PasswordChangeErrorCode; detail?: string }
-
-/** Server and ID of the last successful login (no password). */
-export type LastLogin = { host: string; port: number; username: string }
 
 export type ConnectRequest = {
   host: string

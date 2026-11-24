@@ -22,7 +22,7 @@ The target users are students who use GUI programs (TCAD, EDA tools, etc.) on th
 | --- | --- |
 | SSH login requires knowing terminal commands | Enter only ID and password on a login screen |
 | Seeing the GUI requires installing an X server and setting up X11 forwarding, and it is slow | Show the server's virtual display directly inside the app |
-| Xmanager is paid and needs per-session settings (X11 forwarding, passive mode, encoding) | Nothing to configure; server defaults are built in |
+| Xmanager is paid and needs per-session settings (X11 forwarding, passive mode, encoding) | Nothing to configure beyond the server address, port, ID and password |
 | Each program needs its own environment setup (paths, license servers) | Launchers set the program's environment themselves |
 | Closing the window leaves processes on the server and holds licenses | Clean up the server session automatically when the app exits |
 
@@ -32,7 +32,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 
 ### MVP
 
-- Login: server address built in as a default, ID and password entered at every login (nothing secret is stored)
+- Login: the user types the server address, port, ID and password at every login; nothing is prefilled or stored
 - Korean and English UI, switchable at any time
 - Server status panel (left): server load, memory, disk quota, who is logged in, my running processes, and license usage for launchers that define license features, refreshed periodically
 - Built-in terminal: the server's login shell in the right panel, with `DISPLAY` and `XAUTHORITY` set so any X program started there appears on the remote desktop
@@ -161,7 +161,7 @@ Built with Electron + TypeScript. The terminal (xterm.js) and remote display (no
 | Terminal | @xterm/xterm + fit addon | Same terminal engine as VS Code |
 | Remote display | @novnc/novnc | Browser-based VNC viewer |
 | WebSocket bridge | ws (Node) | Connects noVNC (WebSocket) ↔ SSH forwarding channel (TCP) |
-| Settings storage | electron-store | Server address, window size, etc. |
+| Settings storage | electron-store | Trusted host keys |
 | Packaging | electron-builder | Windows NSIS installer, macOS dmg |
 | Auto update (later) | electron-updater + GitHub Releases | Update without reinstalling |
 | Server-side display | TigerVNC (Xvnc) | Run GUI programs on a virtual display |
@@ -187,7 +187,7 @@ There are only two screens: login and main. On the main screen, the remote deskt
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- Login screen: server address and port (prefilled, inside collapsed advanced settings), ID, password, login button, nothing else. Users can be on different servers or ports, so after a successful login the app remembers that user's server, port and ID (never the password) and prefills them next time; the built-in default is used only on first launch. If OTP is required, show an additional input.
+- Login screen: server address and port (one row), ID, password, login button, nothing else. All fields start empty: no server is built into the app (server details are never committed to the public repository) and the app does not remember earlier logins, so users type the address and port they got from the lab every time. If OTP is required, show an additional input.
 - Server status panel data comes from read-only scripts streamed to `sh -s` over short exec channels while connected:
   - Every 10 s: host name and uptime, load average and core count (`/proc`), memory (`MemAvailable`), the user's home quota (`quota -w`, or the home filesystem from `df` when there is no quota), login sessions with idle time (`who -u`), cumulative CPU time per user (uid ≥ 1000) and of the user's own processes (`ps … time`). Two samples give "cores in use now" per user and per process, instead of `ps`'s lifetime averages.
   - Every 60 s: license usage with `lmutil lmstat -c <license file> -f <feature>`, one query per feature that a launcher declares (`lmstat -a` lists over 700 features on the IDEC server and times out). The numbers are for the whole license server, which other schools share.
@@ -203,7 +203,7 @@ The university's official mascot 서강이 sits in a corner of the window and te
 - **Idle**: the default pose (기본형), small (about 64 px tall), with a slow bob. On the main screen it sits at the bottom left, above the status bar, so it never covers the terminal's prompt line; on the login screen it sits at the bottom right. Hovering shows a "click me" hint.
 - **Click**: it reacts like a mascot that has been poked: a short hop and a switch to the joy pose (기쁨), then a speech bubble opens with the tutorial for the current screen. Clicking it again while the tutorial is open closes it.
 - **Tutorial**: a few steps in the speech bubble with Back / Next / Close. Each step has its own pose (가르침 for explaining, 발견 for "look here", 응원 at the end) and outlines the part of the window it talks about (elements marked with `data-tour`). A hidden target (for example a collapsed panel) is simply not outlined.
-  - Login screen: ID and password (the server is built in), trusting the server key on the first connection, and asking the administrator for a forgotten password.
+  - Login screen: the server address and port (from the lab), ID and password, trusting the server key on the first connection, and asking the administrator for a forgotten password.
   - Main screen: the TCAD launch buttons, the remote desktop, the terminal (`swb &` there also opens on the desktop), the server status panel (check licenses before launching), and ending the session (*End session*, and the keep / end choice when closing).
 - **Move**: users can drag 서강이 anywhere in the window (a press without movement is still a click). The speech bubble opens next to it, on whichever side has room. The position is remembered per screen, and 서강이 is kept inside the window when it is resized.
 - **Hide**: a "Hide 서강이" link in the speech bubble, and a guide toggle button (top right on the login screen, in the toolbar on the main screen) that hides it or brings it back. Hiding also closes an open tutorial and skips the first-run tutorial.
@@ -215,12 +215,13 @@ The university's official mascot 서강이 sits in a corner of the window and te
 The principle is "ask for the password at every login, store nothing secret".
 
 1. Each login uses a password (or keyboard-interactive). The password is used only for the SSH handshake and is never stored. (Automatic key registration is postponed until after the MVP.)
-2. The app remembers only the server, port and ID of the last successful login.
+2. The app stores no login details: the server, port, ID and password are typed at every login. Only trusted host key fingerprints are saved.
 3. On the first connection the app shows the server's SHA256 host key fingerprint and asks the user to trust it. It is saved only after the login succeeds; if it changes later, the connection is blocked with a warning that shows both fingerprints.
 4. VNC binds only to the server's localhost and is reachable only through SSH port forwarding. No external ports are opened.
 5. Electron security settings: `contextIsolation: true`, `nodeIntegration: false`, expose only the needed IPC from preload.
 6. Password change sends the current and new passwords only to `passwd` over a PTY on the existing SSH connection (see "Password change"); they are never put on a command line, logged or stored.
 7. The window only ever shows the app's own page: navigation is blocked (including a file dropped onto the window), and main accepts IPC only from the main frame of that exact page, so no other page can reach the SSH session through the preload API.
+8. Server details (addresses, ports, host names, host keys, license servers) are never committed: the repository is public. Values the build needs (the Sentaurus license servers) come from the git-ignored `.env.local` (template: `.env.example`); developer notes about the server go in the git-ignored `CLAUDE.local.md`. Builds that contain them are shared only on campus, never published.
 
 Passwords, private keys, and OTPs must never appear in log files.
 
@@ -243,6 +244,8 @@ If no virtual display program is available, ask the IT administrator to install 
 ## Packaging and distribution
 
 Pushing a tag triggers GitHub Actions to build Windows and macOS installers and upload them to GitHub Releases.
+
+Open question for stage 8: an installer built with `.env.local` contains the license servers, and public GitHub Releases would expose them. Either build and share installers only on campus (for example the lab's shared drive), or keep the license servers out of the build (for example read them from a file on the school server at launch). Decide before setting up Releases.
 
 | Platform | Artifact | Notes |
 | --- | --- | --- |

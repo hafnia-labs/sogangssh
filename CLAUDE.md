@@ -41,7 +41,7 @@ Follow [DESIGN.md](DESIGN.md) for the product design. Update DESIGN.md first bef
 - `components/app/TerminalPanel.tsx`: xterm.js + fit addon, resizes the PTY with the panel (skipped while collapsed). Ctrl+C copies when text is selected (otherwise it interrupts), Ctrl+V pastes. After `exit` it offers to open a new shell.
 - For end-to-end tests without a real account, run a local ssh2 `Server` with a fake shell and drive the app over CDP (`electron . --remote-debugging-port=… --user-data-dir=<temp>`), so the user's own app data is untouched.
 - Password change: `src/main/ssh/password.ts` runs `env LC_ALL=C passwd` on an exec channel with a PTY (`--stdin` is root-only) and answers prompts by text: `(current) UNIX password:`, `New password:`, `Retype new password:` (checked on the school server: passwd 0.79, PAM 1.1.8, `pam_pwquality retry=3`, local accounts in `/etc/shadow`, no faillock). A second `New password:` means the server rejected it: the app sends Ctrl+C and returns the `BAD PASSWORD:` line. Passwords with control characters are refused (a newline would answer the next prompt). UI: `components/app/ChangePasswordButton.tsx`.
-- Built-in server address: `serverDefaults` in `src/renderer/src/config.ts`. After a successful login, main saves `{host, port, username}` (never the password) and the login screen prefills it next time.
+- No built-in server and no saved logins: the login screen starts empty and the user types the server address, port, ID and password every time. Only trusted host key fingerprints are stored.
 
 ## Remote display (stages 5 and 6)
 
@@ -71,7 +71,7 @@ How it works:
 - `src/main/remote/status-script.ts`: read-only sh scripts (String.raw, no dollar-brace) streamed to `env SOGANGSSH_MONITOR=1 sh -s`. `STATUS_SCRIPT` prints `host`, `uptime`, `load`, `cores`, `mem`, `quota` / `disk`, `me`, `session <user> <idle>`, `usercpu <user> <cpu s> <procs>`, `proc <pid> <cpu s> <rss kB> <comm>`. `LICENSE_SCRIPT <license file> <features…>` prints `license <feature> <used> <issued>` or `licenseError`.
 - `src/main/remote/server-monitor.ts`: runs the status script every 10 s and the license script every 60 s while connected (started and stopped from the connection status in `ipc.ts`), turns two CPU-time samples into cores in use, and pushes `ServerStatus` on `server:status` (`server:getStatus` returns the latest for a re-mounted panel). `components/app/ServerPanel.tsx` renders it.
 - Server facts: `ps` has no `times` field here (use `time`, `[DD-]HH:MM:SS`); combining `-o a=,b=` breaks headers, so pass one `-o` per field; user names need `user:32` or they are cut to 8 characters. `who -u` idle is field 5. Quota: `quota -w` (kB, soft limit 9 GB, hard 10 GB for students).
-- Licenses: the license servers are `SNPSLMD_LICENSE_FILE` in `src/main/launchers.ts`. Sentaurus features (`swb_all`, `sde_all`, `sprocess_all`, `sdevice_all`, `svisual_all`) live on the first entry (the IDEC server); the second entry returns "Invalid returned data". `lmutil` is only shipped with Cadence (`/tools/cadence/IC618/tools.lnx86/bin/lmutil`). `lmstat -a` times out; query each feature with `-f` (about 2 s each). Features per launcher: `licenseFeatures` in `src/main/launchers.ts`.
+- Licenses: the license servers come from `MAIN_VITE_SNPSLMD_LICENSE_FILE` in the git-ignored `.env.local` (inlined into main at build time; see `.env.example`). Sentaurus features (`swb_all`, `sde_all`, `sprocess_all`, `sdevice_all`, `svisual_all`) live on the first entry (the IDEC server); the second entry returns "Invalid returned data". `lmutil` is only shipped with Cadence (`/tools/cadence/IC618/tools.lnx86/bin/lmutil`). `lmstat -a` times out; query each feature with `-f` (about 2 s each). Features per launcher: `licenseFeatures` in `src/main/launchers.ts`.
 - The monitor can be tested against the real server without the app: bundle it with `npx rolldown src/main/remote/server-monitor.ts --format cjs` and give it a stand-in client whose `exec` runs the system `ssh` (see `CLAUDE.local.md` for the local read-only access, if present).
 
 ## UI (shadcn/ui)
@@ -114,6 +114,7 @@ npm run build:win    Windows NSIS installer (release/)
 
 - Electron security: `contextIsolation: true`, `nodeIntegration: false`; never use Node APIs directly in the renderer.
 - Never leave passwords, private keys, or OTPs in logs, settings files, or commits.
+- The repository is public: never commit server details (addresses, ports, host names, host key fingerprints, license servers, account names), not even in commit messages. Keep them in the git-ignored `CLAUDE.local.md` (notes) and `.env.local` (values the build needs). Before committing, check the diff and the message for them.
 - Do not guess server commands (vncserver, TCAD launch commands, environment script paths). Use only the values recorded under "Server pre-check results" below.
 
 ## Server pre-check results
@@ -122,11 +123,11 @@ Personal development notes (local keys, account-specific paths, anything about o
 
 - Virtual display: `/usr/bin/Xvnc` and `/usr/bin/Xvfb` exist; `vncserver`, `xpra`, `x11vnc` do not. So the app must start `Xvnc` directly (no `vncserver` wrapper).
 - Login shell prints `Command not found.` (csh/tcsh style). Run server commands through `sh -c '…'` instead of relying on bash syntax.
-- Server: `<server-host>`, CentOS 7.9, kernel 3.10, nfs-utils 1.3.0. It is mainly a Cadence IC design server (`/tools/cadence`, `/tools/config/*_cdn.cshrc`).
+- Server: the school server (host name in `CLAUDE.local.md`), CentOS 7.9, kernel 3.10, nfs-utils 1.3.0. It is mainly a Cadence IC design server (`/tools/cadence`, `/tools/config/*_cdn.cshrc`).
 - TCAD: Sentaurus T-2022.03 at `/TOOLS/SYNOPSYS/SENTAURUS/T-2022.03` (uppercase path; `bin/` has `swb`, `sde`, `sdevice`, `sprocess`, `svisual`, `inspect`, `gsub`, `gjob`). The lowercase `/tools/synopsys` is an unrelated, broken NFS automount (`nconnect=4` unsupported on kernel 3.10); ignore it.
 - TCAD environment: Sentaurus needs `TCAD_HOME`, PATH (`$TCAD_HOME/bin`), `STDB=$HOME` and `SNPSLMD_LICENSE_FILE` (two license servers, both reachable from the server). Users cannot be assumed to have a personal profile that sets these, so the Sentaurus launchers set them themselves (`src/main/launchers.ts`). Other `*_HOME` variables (ICC, DC, …) are not needed for Sentaurus.
 - Available X programs for testing: `xterm`, `metacity`, `mwm`.
-- Server address and port: the built-in default is `serverDefaults` in `src/renderer/src/config.ts` (the actual values and the host key fingerprint are in `CLAUDE.local.md`, if present). Other users may have a different server or port: they change it under Advanced settings, and the app remembers each user's last successful login (`settings.json` via `src/main/settings.ts`).
+- Server address and port: not in the repository. Users type them at every login; for development they are in `CLAUDE.local.md` (with the host key fingerprint and license servers).
 - Login: password works, no OTP prompt.
 - Connection path / VPN off campus: (not checked)
 - App name: sogangSSH (appId `com.sogangssh.app`, set in `src/renderer/src/config.ts`, `src/main/index.ts`, `electron-builder.yml`). Repository: public `hafnia-labs/sogangssh` (MIT).
