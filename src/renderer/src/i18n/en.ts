@@ -172,6 +172,65 @@ export const en: Messages = {
     ending: 'Ending…',
     failed: 'Could not end the session. Close and keep it running, or try again.',
   },
+  guide: {
+    name: 'Sogangi',
+    hint: 'Click for a quick tour · drag to move',
+    show: 'Show Sogangi',
+    hide: 'Hide Sogangi',
+    back: 'Back',
+    next: 'Next',
+    done: 'Get started',
+    close: 'Close',
+    progress: (step, total) => `${step} / ${total}`,
+    login: {
+      welcome: {
+        title: "Hi! I'm Sogangi",
+        text: "I'll show you how to use TCAD on the school server. Let's start by logging in.",
+      },
+      account: {
+        title: 'ID and password',
+        text: 'Enter your school server ID and password. The server address is already filled in. The password is never saved, so enter it every time.',
+      },
+      hostKey: {
+        title: 'First connection',
+        text: 'The first time you connect, the app asks whether to trust the server key. Check the fingerprint and trust it once; it will not ask again.',
+      },
+      forgot: {
+        title: 'Forgot your password?',
+        text: 'The app cannot recover it. Ask the server administrator to reset it.',
+      },
+    },
+    main: {
+      welcome: {
+        title: "You're in!",
+        text: "Let's look around. Press Next and I'll point things out one by one.",
+      },
+      launchers: {
+        title: 'Start TCAD',
+        text: 'These buttons start Sentaurus Workbench and Visual right away.',
+      },
+      display: {
+        title: 'Remote desktop',
+        text: 'Programs you start appear here. The desktop runs on the server, so if you choose Keep running when closing the app, you can pick up where you left off.',
+      },
+      terminal: {
+        title: 'Terminal',
+        text: 'This is the server terminal. Typing something like swb & here also opens on the desktop.',
+      },
+      server: {
+        title: 'Server status',
+        text: 'Here you see the server load, your disk quota and license usage. If all licenses are in use, wait a little before starting a tool.',
+      },
+      endSession: {
+        title: 'When you are done',
+        text: 'Use this button to end your session. If you just close the window, the app asks whether to keep it running or end everything.',
+      },
+      done: {
+        title: 'All set!',
+        text: 'Click me any time you have a question. Good luck with your research!',
+      },
+    },
+  },
   statusBar: {
     latency: (ms) => `Latency ${ms} ms`,
     display: (display) => `Display :${display}`,

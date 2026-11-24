@@ -131,7 +131,7 @@ export function DisplayPanel({ status, stopped, onStartNew, onDisplay, onBackToL
   }
 
   return (
-    <section className="relative h-full bg-zinc-800">
+    <section className="relative h-full bg-zinc-800" data-tour="display">
       <div ref={screenRef} className="h-full w-full overflow-hidden" />
       {overlay && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900/85 px-6 text-center text-sm text-zinc-200">

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { usePanelRef } from 'react-resizable-panels'
 import { DisplayPanel } from '@/components/app/DisplayPanel'
+import { GuideMascot } from '@/components/app/GuideMascot'
 import { ServerPanel } from '@/components/app/ServerPanel'
 import { StatusBar } from '@/components/app/StatusBar'
 import { TerminalPanel } from '@/components/app/TerminalPanel'
@@ -91,6 +92,7 @@ export function MainScreen({ session, status, onDisconnect, onBackToLogin }: Pro
         </ResizablePanel>
       </ResizablePanelGroup>
       <StatusBar user={session.username} host={session.host} display={display} />
+      <GuideMascot screen="main" autoStart />
     </div>
   )
 }

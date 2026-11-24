@@ -16,6 +16,7 @@ import { BrandName } from './BrandName'
 import { ChangePasswordButton } from './ChangePasswordButton'
 import { ConnectionBadge } from './ConnectionBadge'
 import { EndSessionButton } from './EndSessionButton'
+import { GuideToggle } from './GuideToggle'
 import { LanguageToggle } from './LanguageToggle'
 import { LauncherButtons } from './LauncherButtons'
 
@@ -71,11 +72,14 @@ export function Toolbar({
       </IconButton>
       <BrandName className="mr-1" />
       <Separator orientation="vertical" className="mx-1 h-5!" />
-      <LauncherButtons disabled={status !== 'connected'} />
+      <div className="flex items-center gap-2" data-tour="launchers">
+        <LauncherButtons disabled={status !== 'connected'} />
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         <ConnectionBadge status={status} />
         <LanguageToggle />
+        <GuideToggle />
         <ChangePasswordButton disabled={status !== 'connected'} />
         <EndSessionButton disabled={status !== 'connected'} onEnd={onEndSession} />
         <IconButton label={t.toolbar.disconnect} onClick={onDisconnect}>

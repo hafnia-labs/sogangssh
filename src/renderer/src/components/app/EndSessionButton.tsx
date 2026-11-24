@@ -51,6 +51,7 @@ export function EndSessionButton({ disabled, onEnd }: Props) {
               setOpen(true)
             }}
             aria-label={t.toolbar.endSession}
+            data-tour="end-session"
           >
             <Power />
           </Button>

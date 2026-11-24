@@ -102,7 +102,7 @@ export function TerminalPanel() {
   }
 
   return (
-    <section className="flex h-full flex-col bg-zinc-950 text-zinc-200">
+    <section className="flex h-full flex-col bg-zinc-950 text-zinc-200" data-tour="terminal">
       <div className="flex h-7 shrink-0 items-center border-b border-zinc-800 px-3 text-xs text-zinc-400">
         {t.terminal.title}
       </div>

@@ -128,3 +128,38 @@
     @apply font-sans;
   }
 }
+
+/* Guide character (서강이): accent color for tutorial outlines, and its idle bob and poke hop. */
+@theme {
+  --color-guide: #b60005;
+  --animate-guide-bob: guide-bob 3.2s ease-in-out infinite;
+  --animate-guide-hop: guide-hop 0.5s ease-out;
+
+  @keyframes guide-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  @keyframes guide-hop {
+    0% {
+      transform: translateY(0) scale(1, 1);
+    }
+    20% {
+      transform: translateY(0) scale(1.08, 0.9);
+    }
+    50% {
+      transform: translateY(-14px) scale(0.95, 1.06);
+    }
+    80% {
+      transform: translateY(0) scale(1.04, 0.96);
+    }
+    100% {
+      transform: translateY(0) scale(1, 1);
+    }
+  }
+}

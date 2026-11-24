@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ChevronDown, Loader2 } from 'lucide-react'
 import { BrandName } from '@/components/app/BrandName'
+import { GuideMascot } from '@/components/app/GuideMascot'
+import { GuideToggle } from '@/components/app/GuideToggle'
 import { LanguageToggle } from '@/components/app/LanguageToggle'
 import {
   AlertDialog,
@@ -132,7 +134,8 @@ export function LoginScreen({ onLogin }: Props) {
 
   return (
     <main className="bg-muted/40 relative flex h-screen items-center justify-center p-6">
-      <div className="absolute top-3 right-3">
+      <div className="absolute top-3 right-3 flex items-center gap-1">
+        <GuideToggle />
         <LanguageToggle />
       </div>
       <Card className="w-full max-w-sm">
@@ -142,7 +145,7 @@ export function LoginScreen({ onLogin }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
+          <form onSubmit={handleSubmit} className="grid gap-4" noValidate data-tour="login-form">
             <div className="grid gap-2">
               <Label htmlFor="user">{t.login.user}</Label>
               <Input
@@ -211,10 +214,13 @@ export function LoginScreen({ onLogin }: Props) {
               {pending && <Loader2 className="animate-spin" />}
               {pending ? t.login.submitting : t.login.submit}
             </Button>
-            <p className="text-muted-foreground text-xs">{t.login.forgotPassword}</p>
+            <p className="text-muted-foreground text-xs" data-tour="login-forgot">
+              {t.login.forgotPassword}
+            </p>
           </form>
         </CardContent>
       </Card>
+      <GuideMascot screen="login" />
 
       <AlertDialog open={hostKey !== null} onOpenChange={(open) => !open && setHostKey(null)}>
         <AlertDialogContent>

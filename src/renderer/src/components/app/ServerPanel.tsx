@@ -132,7 +132,7 @@ export function ServerPanel() {
 
   if (!s) {
     return (
-      <aside className="bg-background flex h-full flex-col">
+      <aside className="bg-background flex h-full flex-col" data-tour="server">
         <div className="flex h-9 shrink-0 items-center border-b px-3">
           <span className="text-sm font-semibold">{t.server.title}</span>
         </div>
@@ -149,7 +149,7 @@ export function ServerPanel() {
   const memUsed = s.memory.totalKb - s.memory.availableKb
 
   return (
-    <aside className="bg-background flex h-full flex-col">
+    <aside className="bg-background flex h-full flex-col" data-tour="server">
       <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b px-3">
         <span className="text-sm font-semibold">{t.server.title}</span>
         <span className="text-muted-foreground truncate text-xs">

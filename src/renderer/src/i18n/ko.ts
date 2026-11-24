@@ -167,6 +167,65 @@ export const ko = {
     ending: '종료하는 중…',
     failed: '세션을 종료하지 못했습니다. 계속 실행하고 닫거나 다시 시도하세요.',
   },
+  guide: {
+    name: '서강이',
+    hint: '눌러서 사용법 보기 · 끌어서 옮기기',
+    show: '서강이 보이기',
+    hide: '서강이 숨기기',
+    back: '이전',
+    next: '다음',
+    done: '시작하기',
+    close: '닫기',
+    progress: (step: number, total: number) => `${step} / ${total}`,
+    login: {
+      welcome: {
+        title: '안녕! 나는 서강이야',
+        text: '학교 서버에서 TCAD를 쓰는 법을 알려 줄게. 먼저 로그인부터 해 보자.',
+      },
+      account: {
+        title: '아이디와 비밀번호',
+        text: '학교 서버 아이디와 비밀번호만 넣으면 돼. 서버 주소는 이미 들어 있어. 비밀번호는 저장하지 않으니까 매번 입력해 줘.',
+      },
+      hostKey: {
+        title: '처음 접속할 때',
+        text: '처음 접속하면 서버의 보안 키를 믿을지 물어봐. 지문을 확인하고 한 번만 신뢰를 누르면 다음부터는 묻지 않아.',
+      },
+      forgot: {
+        title: '비밀번호를 잊었다면',
+        text: '앱에서는 비밀번호를 찾을 수 없어. 서버 관리자에게 초기화를 부탁해 줘.',
+      },
+    },
+    main: {
+      welcome: {
+        title: '로그인 성공!',
+        text: '이제 화면을 같이 둘러보자. 다음을 누르면 하나씩 짚어 줄게.',
+      },
+      launchers: {
+        title: 'TCAD 실행',
+        text: '위쪽 버튼으로 Sentaurus Workbench와 Visual을 바로 켤 수 있어.',
+      },
+      display: {
+        title: '원격 화면',
+        text: '켠 프로그램은 가운데 화면에 나타나. 이 화면은 서버에서 돌아가서, 앱을 닫을 때 계속 실행을 고르면 다음에 그대로 이어서 쓸 수 있어.',
+      },
+      terminal: {
+        title: '터미널',
+        text: '오른쪽은 서버 터미널이야. 여기서 swb & 처럼 입력해도 가운데 화면에 열려.',
+      },
+      server: {
+        title: '서버 현황',
+        text: '왼쪽에서 서버 부하, 내 디스크 용량, 라이선스 사용량을 볼 수 있어. 라이선스가 다 차 있으면 조금 기다렸다가 켜 줘.',
+      },
+      endSession: {
+        title: '작업을 끝낼 때',
+        text: '다 끝나면 이 버튼으로 세션을 종료해. 그냥 창을 닫으면 계속 실행할지, 모두 종료할지 물어봐.',
+      },
+      done: {
+        title: '준비 끝!',
+        text: '궁금한 게 생기면 언제든 나를 눌러 줘. 연구 화이팅!',
+      },
+    },
+  },
   statusBar: {
     latency: (ms: number) => `지연 ${ms}ms`,
     display: (display: number) => `디스플레이 :${display}`,

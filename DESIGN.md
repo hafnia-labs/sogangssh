@@ -42,6 +42,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - Exit choice: closing the app asks "Keep running" (leave the session for later) or "End everything" (stop the desktop and every program on it)
 - Connection status indicator and automatic reconnect on disconnect
 - Password change: a logged-in user can change their server account password from the toolbar (see "Password change"). A forgotten password cannot be reset from the app; the login screen tells the user to ask the server administrator
+- Guide character: the mascot 서강이 in a corner of the window; clicking it opens a short tutorial for the current screen (see "Guide character (서강이)")
 
 ### After the MVP
 
@@ -190,7 +191,22 @@ There are only two screens: login and main. On the main screen, the remote deskt
   - Every 60 s: license usage with `lmutil lmstat -c <license file> -f <feature>`, one query per feature that a launcher declares (`lmstat -a` lists over 700 features on the IDEC server and times out). The numbers are for the whole license server, which other schools share.
   - Users are listed if they have a login session or use at least 0.1 cores; the user comes first, then the busiest. The panel's own commands are marked (`SOGANGSSH_MONITOR=1`) and left out of "my processes".
 - The UI supports Korean and English. The first launch follows the OS language (Korean if it is Korean, otherwise English), and users can switch from the login screen or the toolbar.
+- Guide character: see "Guide character (서강이)".
 - Error messages are shown in the selected language and state the cause and what to do. Examples: "The password is incorrect", "Check that you are connected to the school VPN".
+
+## Guide character (서강이)
+
+The university's official mascot 서강이 sits in a corner of the window and teaches new users how to use the app. The images come from the character download on sogang.ac.kr (`/ko/symbol/character`), are only scaled down (never redrawn, recolored or cropped), and are used for this non-commercial, on-campus app.
+
+- **Idle**: the default pose (기본형), small (about 64 px tall), with a slow bob. On the main screen it sits at the bottom left, above the status bar, so it never covers the terminal's prompt line; on the login screen it sits at the bottom right. Hovering shows a "click me" hint.
+- **Click**: it reacts like a mascot that has been poked: a short hop and a switch to the joy pose (기쁨), then a speech bubble opens with the tutorial for the current screen. Clicking it again while the tutorial is open closes it.
+- **Tutorial**: a few steps in the speech bubble with Back / Next / Close. Each step has its own pose (가르침 for explaining, 발견 for "look here", 응원 at the end) and outlines the part of the window it talks about (elements marked with `data-tour`). A hidden target (for example a collapsed panel) is simply not outlined.
+  - Login screen: ID and password (the server is built in), trusting the server key on the first connection, and asking the administrator for a forgotten password.
+  - Main screen: the TCAD launch buttons, the remote desktop, the terminal (`swb &` there also opens on the desktop), the server status panel (check licenses before launching), and ending the session (*End session*, and the keep / end choice when closing).
+- **Move**: users can drag 서강이 anywhere in the window (a press without movement is still a click). The speech bubble opens next to it, on whichever side has room. The position is remembered per screen, and 서강이 is kept inside the window when it is resized.
+- **Hide**: a "Hide 서강이" link in the speech bubble, and a guide toggle button (top right on the login screen, in the toolbar on the main screen) that hides it or brings it back. Hiding also closes an open tutorial and skips the first-run tutorial.
+- **First run**: the main-screen tutorial opens by itself once, after the first successful login. That it was shown, the hidden state and the positions are remembered in the renderer's local storage (conveniences; losing them only brings back the defaults).
+- Texts come from the i18n files like every other string. Motion is turned off when the OS asks for reduced motion.
 
 ## Security and authentication
 
