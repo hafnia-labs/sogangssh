@@ -1,5 +1,7 @@
 # sogangSSH
 
+English | [한국어](README.ko.md)
+
 A desktop app for using GUI programs such as Synopsys Sentaurus TCAD on the Sogang University school server, with no terminal setup. You log in with your school ID and password; the app shows the server's terminal, a remote desktop and live server status in one window.
 
 The UI is available in Korean and English.
