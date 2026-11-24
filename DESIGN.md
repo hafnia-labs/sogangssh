@@ -93,6 +93,7 @@ Accounts on the school server are local accounts (`/etc/passwd` and `/etc/shadow
 - Main runs `env LC_ALL=C passwd` on an exec channel with a PTY (`passwd` reads from a terminal, and `passwd --stdin` is root-only) and answers the prompts by text: `(current) UNIX password:` gets the current password, `New password:` and `Retype new password:` get the new one. `LC_ALL=C` keeps the prompts in English whatever the server locale is.
 - The passwords travel only over the PTY (terminal echo is off for these prompts), never on a command line, in logs or in settings. Server output returned to the renderer has both passwords removed.
 - Results: success (`all authentication tokens updated successfully`); wrong current password (`passwd` ends before asking for a new one); rejected new password (`passwd` asks for a new password again after a `BAD PASSWORD:` line: the app interrupts it and shows that server line as-is); any other failure shows the end of the output.
+- Unknown outcome: once the new password has been typed twice, the server may already have saved it. If the change is then cut off (connection dropped, time limit, channel error) without a success or error line, the app does not call it a failure: it says the password may have changed and to try the new password first at the next login, then the old one.
 - The SSH session that is already open stays logged in. The new password is needed from the next login.
 
 ## How it works and architecture

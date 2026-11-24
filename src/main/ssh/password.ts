@@ -74,6 +74,20 @@ export function changePassword(
         let newSent = false
         let rejected: string | null = null
         let askedAgain = false
+        // Once the new password has been confirmed, the server may save it at any moment.
+        let retypeSent = false
+        let sinceRetype = ''
+
+        /**
+         * The result when the change is cut off (closed, timed out, channel error). After the
+         * confirmation was sent and with no server verdict yet, the password may already be saved:
+         * calling that a plain failure would send the user to the next login with the wrong one.
+         */
+        const cutOff = (detail?: string): PasswordChangeResult => {
+          const verdictSeen = rejected !== null || AUTH_ERROR.test(sinceRetype) || SUCCESS.test(all)
+          if (retypeSent && !verdictSeen) return { ok: false, error: 'maybeChanged' }
+          return { ok: false, error: 'failed', detail }
+        }
 
         const finish = (result: PasswordChangeResult) => {
           if (settled) return
@@ -83,7 +97,7 @@ export function changePassword(
         }
 
         const timer = setTimeout(() => {
-          finish({ ok: false, error: 'failed', detail: 'timeout' })
+          finish(cutOff('timeout'))
           channel.close()
         }, TIMEOUT_MS)
 
@@ -102,6 +116,7 @@ export function changePassword(
           const text = chunk.toString('utf8').replace(/\r/g, '')
           all = (all + text).slice(-4000)
           pending += text
+          if (retypeSent) sinceRetype = (sinceRetype + text).slice(-4000)
           if (rejected !== null) return
           if (CURRENT_PROMPT.test(pending)) {
             // Asked twice for the current password: the first one was wrong.
@@ -114,6 +129,7 @@ export function changePassword(
             }
           } else if (RETYPE_PROMPT.test(pending)) {
             answer(next)
+            retypeSent = true
           } else if (NEW_PROMPT.test(pending)) {
             if (newSent) {
               // Asked again after a "BAD PASSWORD:" (or mismatch) line: the server rejected it.
@@ -132,7 +148,7 @@ export function changePassword(
         channel.on('data', onOutput)
         channel.stderr.on('data', onOutput)
         // An 'error' event without a listener would crash the main process.
-        channel.on('error', (e: Error) => finish({ ok: false, error: 'failed', detail: e.message }))
+        channel.on('error', (e: Error) => finish(cutOff(e.message)))
         channel.on('close', () => {
           if (rejected !== null) {
             finish({ ok: false, error: 'rejected', detail: rejected || undefined })
@@ -142,7 +158,7 @@ export function changePassword(
             // passwd ends before asking for a new password when the current one is wrong.
             finish({ ok: false, error: 'wrongPassword' })
           } else {
-            finish({ ok: false, error: 'failed', detail: tail(all, secrets) })
+            finish(cutOff(tail(all, secrets)))
           }
         })
       },

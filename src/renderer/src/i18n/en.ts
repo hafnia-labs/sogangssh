@@ -156,6 +156,8 @@ export const en: Messages = {
       rejected:
         'The server rejected the new password. Use a longer password that is harder to guess.',
       failed: 'Could not change the password.',
+      maybeChanged:
+        'The change was cut off, so it is not known whether the password changed. At the next login, try the new password first, then the current one.',
     },
   },
   exit: {

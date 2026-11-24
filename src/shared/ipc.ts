@@ -104,7 +104,13 @@ export type TerminalExit = { code: number | null }
 export type PasswordChangeRequest = { current: string; next: string }
 
 export type PasswordChangeErrorCode =
-  'notConnected' | 'invalidInput' | 'wrongPassword' | 'rejected' | 'failed'
+  | 'notConnected'
+  | 'invalidInput'
+  | 'wrongPassword'
+  | 'rejected'
+  | 'failed'
+  /** Cut off after the new password was confirmed: it may or may not have been saved. */
+  | 'maybeChanged'
 
 /**
  * Result of changing the server account password with `passwd`. `detail` is server output
