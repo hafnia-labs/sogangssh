@@ -84,7 +84,7 @@ How it works:
 
 ## Language
 
-- Write all Markdown files in English.
+- Write all Markdown files in English. The one exception is the user-facing README: `README.md` is Korean, so it is the first page on GitHub, and `README.en.md` is the English version. Keep the two in sync.
 - The app UI supports Korean and English. Never hard-code user-facing strings in components: add the key to `src/renderer/src/i18n/ko.ts` and `en.ts` (the `Messages` type keeps them in sync) and read it with `useI18n().t`.
 - Server output (terminal text, file names, commands) is not translated.
 

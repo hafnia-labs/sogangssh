@@ -1,53 +1,53 @@
 # sogangSSH
 
-English | [한국어](README.ko.md)
+[English](README.en.md) | 한국어
 
-A desktop app for using GUI programs such as Synopsys Sentaurus TCAD on the Sogang University school server, with no terminal setup. You log in with your school ID and password; the app shows the server's terminal, a remote desktop and live server status in one window.
+서강대학교 학교 서버에서 Synopsys Sentaurus TCAD 같은 GUI 프로그램을 터미널 설정 없이 쓸 수 있게 해 주는 데스크톱 앱입니다. 학교 아이디와 비밀번호로 로그인하면 서버 터미널, 원격 화면, 서버 현황을 한 창에서 볼 수 있습니다.
 
-The UI is available in Korean and English.
+화면은 한국어와 영어를 지원합니다.
 
-## What it does
+## 주요 기능
 
-- **Login**: enter your ID and password only. The server address is built in, and the app remembers the server and ID of your last login (never the password). The server's host key is checked on every connection.
-- **Remote desktop**: starts a virtual display (TigerVNC `Xvnc`) on the server and shows it in the app through the SSH connection. You need no X server, X11 forwarding or VNC client on your PC.
-- **Persistent session**: each user has one remote desktop on the server. Closing the app asks whether to keep it running (long simulations continue, and the same screen comes back at the next login) or to end everything.
-- **Launchers**: toolbar buttons start Sentaurus Workbench and Sentaurus Visual with the TCAD environment and license servers already set, so you need no personal profile.
-- **Terminal**: the server's login shell, with `DISPLAY` set so programs started there (`swb &`, `xterm &`) appear on the remote desktop.
-- **Server status**: CPU load, memory, your disk quota, who is using the server, your processes and Sentaurus license usage, refreshed while you are connected.
+- **로그인**: 아이디와 비밀번호만 입력하면 됩니다. 서버 주소가 기본으로 들어 있고, 마지막으로 로그인한 서버와 아이디를 기억합니다. 비밀번호는 기억하지 않습니다. 접속할 때마다 서버의 호스트 키를 확인합니다.
+- **원격 화면**: 서버에 가상 화면(TigerVNC `Xvnc`)을 띄우고 SSH 연결을 통해 앱 안에 보여 줍니다. 내 PC에 X 서버, X11 포워딩, VNC 프로그램을 설치할 필요가 없습니다.
+- **세션 유지**: 원격 화면은 사용자당 하나만 서버에 있습니다. 앱을 닫을 때 "계속 실행"과 "모두 종료" 중에 고릅니다. 계속 실행하면 시뮬레이션이 그대로 돌고, 다음에 로그인하면 같은 화면으로 돌아옵니다.
+- **실행 버튼**: 툴바 버튼으로 Sentaurus Workbench와 Sentaurus Visual을 실행합니다. TCAD 환경과 라이선스 서버 설정은 앱이 넣어 주므로 개인 설정 파일이 필요 없습니다.
+- **터미널**: 서버의 로그인 셸입니다. `DISPLAY`가 설정되어 있어서, 여기서 실행한 프로그램(`swb &`, `xterm &`)이 원격 화면에 나타납니다.
+- **서버 현황**: 접속해 있는 동안 CPU 부하, 메모리, 내 디스크 할당량, 서버 사용자, 내 프로세스, Sentaurus 라이선스 사용량을 주기적으로 보여 줍니다.
 
-## Security
+## 보안
 
-- The password is used only for the SSH login. It is never stored, logged or sent anywhere else.
-- The remote desktop listens only on the server's localhost and is reached only through your SSH connection. It needs a random per-session VNC password and an X authority cookie. Both are kept in a private folder (`~/.sogangssh`, mode 700) on the server, so other users on the shared server cannot view or control your session.
-- The app installs nothing on the server that needs administrator rights. It uses only programs that are already there, plus a small shell script in `~/.sogangssh`.
+- 비밀번호는 SSH 로그인에만 씁니다. 저장하거나, 로그에 남기거나, 다른 곳으로 보내지 않습니다.
+- 원격 화면은 서버 내부(localhost)에서만 접속을 받고, 내 SSH 연결을 통해서만 열 수 있습니다. 세션마다 무작위 VNC 비밀번호와 X 인증 쿠키가 필요합니다. 둘 다 서버의 개인 폴더(`~/.sogangssh`, 권한 700)에 보관하기 때문에, 같은 서버를 쓰는 다른 사용자는 내 화면을 보거나 조작할 수 없습니다.
+- 서버에 관리자 권한이 필요한 것은 아무것도 설치하지 않습니다. 서버에 이미 있는 프로그램과 `~/.sogangssh`에 두는 작은 셸 스크립트만 씁니다.
 
-## Installing
+## 설치
 
-Installers will be published on this repository's Releases page. The first release targets Windows.
+설치 파일은 이 저장소의 Releases 페이지에 올릴 예정입니다. 첫 배포는 Windows용입니다.
 
-## Development
+## 개발
 
-Requirements: Node.js 24 and npm.
+필요한 것: Node.js 24, npm
 
 ```
 npm install
-npm run dev          # run with hot reload
-npm run typecheck    # type-check main/preload and renderer
+npm run dev          # 개발 모드로 실행 (코드 수정 시 자동 반영)
+npm run typecheck    # 타입 검사 (main/preload, renderer)
 npm run lint         # ESLint
-npm run build:win    # Windows installer (release/)
+npm run build:win    # Windows 설치 파일 만들기 (release/)
 ```
 
-Stack: Electron, electron-vite, React, TypeScript, Tailwind CSS, shadcn/ui, ssh2, xterm.js, noVNC.
+사용 기술: Electron, electron-vite, React, TypeScript, Tailwind CSS, shadcn/ui, ssh2, xterm.js, noVNC
 
-- [DESIGN.md](DESIGN.md): the product design.
-- [CLAUDE.md](CLAUDE.md): implementation notes and the results of checks on the school server.
+- [DESIGN.md](DESIGN.md): 제품 설계 문서 (영어)
+- [CLAUDE.md](CLAUDE.md): 구현 메모와 학교 서버 확인 결과 (영어)
 
-## License
+## 라이선스
 
-[MIT](LICENSE). The MIT license covers this project's code only. It does not cover the Sogang University emblem, which stays subject to the university's rules.
+[MIT](LICENSE). MIT 라이선스는 이 프로젝트의 코드에만 적용됩니다. 서강대학교 엠블럼에는 적용되지 않으며, 엠블럼은 학교 규정을 따릅니다.
 
-## Notes
+## 참고
 
-- This is a student project. It is not an official Sogang University service.
-- The Sogang University emblem is used unaltered, following the university's identity guidelines.
-- No binaries, manuals or license files of any third-party program are included.
+- 학생 프로젝트이며, 서강대학교 공식 서비스가 아닙니다.
+- 서강대학교 엠블럼은 학교 UI 규정에 따라 변형 없이 사용합니다.
+- 다른 회사 프로그램의 실행 파일, 매뉴얼, 라이선스 파일은 포함하지 않습니다.
