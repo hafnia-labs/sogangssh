@@ -23,6 +23,11 @@ export function exec(client: Client, command: string, timeoutMs: number, stdin?:
         stderr = (stderr + chunk.toString('utf8')).slice(-2000)
       })
       channel.on('exit', (c: number | null) => (code = c))
+      // An 'error' event without a listener would crash the main process.
+      channel.on('error', (e: Error) => {
+        clearTimeout(timer)
+        resolve({ code, stdout, stderr, error: e.message })
+      })
       channel.on('close', () => {
         clearTimeout(timer)
         resolve({ code, stdout, stderr })

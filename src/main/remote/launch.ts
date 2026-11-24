@@ -78,6 +78,11 @@ export function launch(
       channel.stderr.on('data', (chunk: Buffer) => {
         stderr = (stderr + chunk.toString('utf8')).slice(-1000)
       })
+      // An 'error' event without a listener would crash the main process.
+      channel.on('error', (e: Error) => {
+        clearTimeout(timer)
+        resolve({ ok: false, error: 'failed', detail: e.message })
+      })
       channel.on('close', () => {
         clearTimeout(timer)
         const line = stdout

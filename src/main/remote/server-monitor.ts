@@ -149,6 +149,8 @@ export class ServerMonitor {
     for (const t of this.timers) clearInterval(t)
     this.timers = []
     this.client = null
+    // A query still running on the old connection must not block the next one.
+    this.busy = { status: false, license: false }
     this.prev = null
     this.licenses = null
     this.licenseError = undefined
@@ -164,7 +166,7 @@ export class ServerMonitor {
       if (client !== this.client || !r.stdout) return
       this.publish(parseStatus(r.stdout), Date.now())
     } finally {
-      this.busy.status = false
+      if (client === this.client) this.busy.status = false
     }
   }
 
@@ -201,7 +203,7 @@ export class ServerMonitor {
         this.onStatus(this.latest)
       }
     } finally {
-      this.busy.license = false
+      if (client === this.client) this.busy.license = false
     }
   }
 

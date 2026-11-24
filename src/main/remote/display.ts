@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
-import type { Client } from 'ssh2'
+import type { Client, ClientChannel } from 'ssh2'
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { DisplayEndResult, DisplayStartResult } from '../../shared/ipc'
 import { DISPLAY_SCRIPT } from './display-script'
@@ -186,22 +186,38 @@ export class RemoteDisplay {
 
     bridge.on('connection', (ws: WebSocket) => {
       ws.binaryType = 'nodebuffer'
-      client.forwardOut('127.0.0.1', 0, '127.0.0.1', info.port, (err, stream) => {
+      // Listen on the WebSocket before the forward opens, so a close that comes first is seen.
+      let stream: ClientChannel | null = null
+      let closed = false
+      const closeBoth = () => {
+        if (closed) return
+        closed = true
+        stream?.end()
+        if (ws.readyState === ws.OPEN) ws.close()
+      }
+      ws.on('close', closeBoth)
+      ws.on('error', closeBoth)
+      // noVNC keeps sending while the WebSocket is closing: never write to an ended stream.
+      ws.on('message', (data: Buffer) => {
+        if (!closed && stream?.writable) stream.write(data)
+      })
+      client.forwardOut('127.0.0.1', 0, '127.0.0.1', info.port, (err, forwarded) => {
         if (err) {
-          ws.close(1011, 'forward failed')
+          if (!closed) ws.close(1011, 'forward failed')
+          closed = true
           return
         }
-        ws.on('message', (data: Buffer) => stream.write(data))
-        stream.on('data', (data: Buffer) => {
+        // An 'error' event without a listener would crash the main process.
+        forwarded.on('error', closeBoth)
+        if (closed) {
+          forwarded.end()
+          return
+        }
+        stream = forwarded
+        forwarded.on('data', (data: Buffer) => {
           if (ws.readyState === ws.OPEN) ws.send(data)
         })
-        const closeBoth = () => {
-          stream.end()
-          if (ws.readyState === ws.OPEN) ws.close()
-        }
-        ws.on('close', closeBoth)
-        ws.on('error', closeBoth)
-        stream.on('close', closeBoth)
+        forwarded.on('close', closeBoth)
       })
     })
 
@@ -220,6 +236,10 @@ export class RemoteDisplay {
         resolve({ ok: true, url, password: info.password, display: info.display, reused })
       })
       bridge.on('error', (err) => {
+        // A broken bridge must not stay the session, or every reattach would reuse its dead URL.
+        if (this.session?.bridge === bridge) this.session = null
+        for (const ws of bridge.clients) ws.terminate()
+        bridge.close()
         resolve({ ok: false, error: 'startFailed', detail: err.message })
       })
     })

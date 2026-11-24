@@ -80,6 +80,8 @@ export class RemoteShell {
         }
         channel.on('data', emit)
         channel.stderr.on('data', emit)
+        // An 'error' event without a listener would crash the main process; 'close' follows it.
+        channel.on('error', () => {})
         let exitCode: number | null = null
         channel.on('exit', (code: number | null) => {
           exitCode = typeof code === 'number' ? code : null
@@ -98,7 +100,8 @@ export class RemoteShell {
   }
 
   write(data: unknown): void {
-    if (typeof data === 'string' && data.length > 0) this.channel?.write(data)
+    if (typeof data === 'string' && data.length > 0 && this.channel?.writable)
+      this.channel.write(data)
   }
 
   resize(cols: unknown, rows: unknown): void {
