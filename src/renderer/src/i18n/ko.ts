@@ -119,7 +119,10 @@ export const ko = {
       notFound: (app: string) => `서버에서 ${app} 프로그램을 찾지 못했습니다.`,
       exited: (app: string) => `${app}이(가) 시작하자마자 종료되었습니다.`,
       failed: (app: string) => `${app}을(를) 시작하지 못했습니다.`,
+      alreadyRunning: (app: string) =>
+        `${app}이(가) 이미 원격 화면에 열려 있습니다. 다른 창 뒤에 가려져 있을 수 있습니다.`,
     },
+    openAnother: '하나 더 열기',
   },
   endSession: {
     title: '세션을 종료할까요?',

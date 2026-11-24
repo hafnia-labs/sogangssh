@@ -6,7 +6,12 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from 'react'
 import { X } from 'lucide-react'
 import cheerUrl from '@/assets/mascot/cheer.png'
 import idleUrl from '@/assets/mascot/idle.png'
@@ -18,7 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useI18n } from '@/i18n/context'
 import type { Messages } from '@/i18n/ko'
 import { cn } from '@/lib/utils'
-import { setGuideHidden, useGuideHidden } from './guide-visibility'
+import { isGuideHidden, setGuideHidden, useGuideHidden } from './guide-visibility'
 
 // The official 서강이 poses (sogang.ac.kr character download), only scaled down.
 const POSES = {
@@ -201,6 +206,16 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
   const drag = useRef<{ start: Point; origin: Point; moved: boolean } | null>(null)
   const suppressClick = useRef(false)
 
+  // Hiding ends the tour, so showing 서강이 again does not reopen it halfway through.
+  const [wasHidden, setWasHidden] = useState(hidden)
+  if (hidden !== wasHidden) {
+    setWasHidden(hidden)
+    if (hidden) {
+      setTourOpen(false)
+      setPoked(false)
+    }
+  }
+
   const open = tourOpen && !hidden
   const step = steps[index]
   const rect = useTargetRect(step.target, open)
@@ -215,7 +230,8 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
     // Hop and smile first, then start talking.
     pokeTimer.current = setTimeout(() => {
       setPoked(false)
-      setTourOpen(true)
+      // Hidden during the hop: do not open the tour behind the user's back.
+      if (!isGuideHidden()) setTourOpen(true)
     }, 500)
   }, [])
 
@@ -236,14 +252,14 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
     return () => clearTimeout(timer)
   }, [autoStart, hidden, start])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
+  // Esc closes the tour only when it is pressed on the guide itself (the bubble or 서강이), never
+  // when it is meant for the terminal, the remote desktop or a dialog.
+  const onKeyDown = (e: ReactKeyboardEvent) => {
+    if (e.key === 'Escape' && open) {
+      e.stopPropagation()
+      close()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, close])
+  }
 
   useEffect(
     () => () => {
@@ -254,6 +270,8 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
 
   const onPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return
+    // A drag that ended in pointercancel never got its click: do not swallow this one.
+    suppressClick.current = false
     drag.current = { start: { x: e.clientX, y: e.clientY }, origin: point, moved: false }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
@@ -287,7 +305,18 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
     writeStorage(positionKey(screen), JSON.stringify(next ?? point))
   }
 
-  const onClick = () => {
+  /** The browser took the pointer over (e.g. a system gesture): keep where it was dragged to. */
+  const onPointerCancel = () => {
+    const moved = drag.current?.moved ?? false
+    drag.current = null
+    if (!moved) return
+    setDragging(false)
+    writeStorage(positionKey(screen), JSON.stringify(point))
+  }
+
+  const onClick = (e: ReactMouseEvent) => {
+    // detail is 0 for a keyboard click (Enter or Space): never the end of a drag.
+    if (e.detail === 0) suppressClick.current = false
     if (suppressClick.current) {
       suppressClick.current = false
       return
@@ -321,6 +350,8 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
         <div
           role="dialog"
           aria-label={t.guide.name}
+          aria-live="polite"
+          onKeyDown={onKeyDown}
           className="bg-background text-foreground fixed z-50 rounded-xl border p-3 shadow-lg"
           style={{ width: BUBBLE_WIDTH, ...bubbleStyle(point, view) }}
         >
@@ -369,7 +400,8 @@ export function GuideMascot({ screen, autoStart = false }: Props) {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
+            onPointerCancel={onPointerCancel}
+            onKeyDown={onKeyDown}
             aria-label={t.guide.hint}
             aria-expanded={open}
             className={cn(

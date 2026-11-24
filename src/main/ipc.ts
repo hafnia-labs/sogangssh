@@ -147,17 +147,20 @@ export function registerIpcHandlers(): void {
     return launchers.map(({ id, label }) => ({ id, label }))
   })
 
-  ipcMain.handle(IpcChannel.launcherRun, async (event, id: unknown): Promise<LaunchResult> => {
-    if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
-    const launcher = launchers.find((l) => l.id === id)
-    if (!launcher) return { ok: false, error: 'failed', detail: 'Unknown launcher' }
-    const client = ssh.activeClient
-    if (!client) return { ok: false, error: 'notConnected' }
-    const env = await display.waitForEnvironment()
-    if (ssh.activeClient !== client) return { ok: false, error: 'notConnected' }
-    if (!env) return { ok: false, error: 'noDisplay' }
-    return launch(client, launcher, env)
-  })
+  ipcMain.handle(
+    IpcChannel.launcherRun,
+    async (event, id: unknown, force: unknown): Promise<LaunchResult> => {
+      if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
+      const launcher = launchers.find((l) => l.id === id)
+      if (!launcher) return { ok: false, error: 'failed', detail: 'Unknown launcher' }
+      const client = ssh.activeClient
+      if (!client) return { ok: false, error: 'notConnected' }
+      const env = await display.waitForEnvironment()
+      if (ssh.activeClient !== client) return { ok: false, error: 'notConnected' }
+      if (!env) return { ok: false, error: 'noDisplay' }
+      return launch(client, launcher, env, force === true)
+    },
+  )
 
   let changingPassword = false
 

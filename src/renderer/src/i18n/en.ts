@@ -123,7 +123,10 @@ export const en: Messages = {
       notFound: (app) => `${app} was not found on the server.`,
       exited: (app) => `${app} exited right after starting.`,
       failed: (app) => `Could not start ${app}.`,
+      alreadyRunning: (app) =>
+        `${app} is already open on the remote desktop. It may be behind another window.`,
     },
+    openAnother: 'Open another',
   },
   endSession: {
     title: 'End the session?',

@@ -15,6 +15,11 @@ function readHidden(): boolean {
 let hidden = readHidden()
 const listeners = new Set<() => void>()
 
+/** The current value, for callbacks that run outside rendering (timers). */
+export function isGuideHidden(): boolean {
+  return hidden
+}
+
 export function setGuideHidden(value: boolean): void {
   hidden = value
   try {

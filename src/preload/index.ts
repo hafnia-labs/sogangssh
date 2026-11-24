@@ -68,7 +68,9 @@ const api = {
   },
   launcher: {
     list: (): Promise<LauncherInfo[]> => ipcRenderer.invoke(IpcChannel.launcherList),
-    run: (id: string): Promise<LaunchResult> => ipcRenderer.invoke(IpcChannel.launcherRun, id),
+    /** `force` starts another copy even if one is already running. */
+    run: (id: string, force = false): Promise<LaunchResult> =>
+      ipcRenderer.invoke(IpcChannel.launcherRun, id, force),
   },
   app: {
     /** Main asks the renderer whether to keep or end the remote desktop before closing. */

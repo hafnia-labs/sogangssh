@@ -12,9 +12,14 @@ const ENV_NAME = /^[A-Z_][A-Z0-9_]*$/
 /**
  * POSIX sh script that starts one program on the user's desktop, detached (setsid nohup) so it
  * keeps running when the app closes. It is fed to `sh -s` over stdin, which keeps the exec
- * command plain for the csh login shell. Output: `LAUNCHED <pid>` or `ERROR <code> <detail>`.
+ * command plain for the csh login shell. Output: `LAUNCHED <pid>`, `RUNNING <pid>` (a copy started
+ * by this launcher is already on the desktop; only without `force`) or `ERROR <code> <detail>`.
  */
-export function launchScript(launcher: LauncherConfig, env: DisplayEnvironment): string | null {
+export function launchScript(
+  launcher: LauncherConfig,
+  env: DisplayEnvironment,
+  force = false,
+): string | null {
   const words = [
     ...launcher.command,
     ...Object.values(launcher.env),
@@ -28,6 +33,9 @@ export function launchScript(launcher: LauncherConfig, env: DisplayEnvironment):
   if (!/^[\w-]+$/.test(launcher.id)) return null
 
   const program = launcher.command[0]
+  // The kernel's process name (/proc/<pid>/comm) is the file name, cut to 15 characters.
+  const processName = (program.split('/').pop() ?? '').slice(0, 15)
+  if (!/^[\w.+-]+$/.test(processName)) return null
   const exports = Object.entries(launcher.env).map(([k, v]) => `${k}="${v}"; export ${k}`)
   const log = `$HOME/.sogangssh/session/launch-${launcher.id}.log`
   return [
@@ -37,8 +45,24 @@ export function launchScript(launcher: LauncherConfig, env: DisplayEnvironment):
     ...launcher.path.map((p) => `PATH="$PATH:${p}"`),
     'export PATH',
     `command -v ${program} >/dev/null 2>&1 || { echo "ERROR notFound ${program}"; exit 0; }`,
+    // One copy per launcher: look for an own process this launcher started on this display.
+    ...(force
+      ? []
+      : [
+          'for P in $(ps -u "$(id -u)" -o pid=); do',
+          `  [ "$(cat /proc/$P/comm 2>/dev/null)" = "${processName}" ] || continue`,
+          `  ENV=$({ tr '\\0' '\\n' < /proc/$P/environ; } 2>/dev/null)`,
+          `  printf '%s\\n' "$ENV" | grep -qx "SOGANGSSH_LAUNCHER=${launcher.id}" || continue`,
+          `  printf '%s\\n' "$ENV" | grep -qx "DISPLAY=${env.display}" || continue`,
+          '  echo "RUNNING $P"',
+          '  exit 0',
+          'done',
+        ]),
+    // Marks everything this launch starts, so the check above finds it next time.
+    `SOGANGSSH_LAUNCHER=${launcher.id}; export SOGANGSSH_LAUNCHER`,
     `cd "${launcher.cwd}" 2>/dev/null || cd "$HOME"`,
-    `setsid nohup ${launcher.command.join(' ')} > "${log}" 2>&1 < /dev/null &`,
+    // A forced second copy must not truncate the log the first copy is still writing.
+    `setsid nohup ${launcher.command.join(' ')} ${force ? '>>' : '>'} "${log}" 2>&1 < /dev/null &`,
     'PID=$!',
     // A program that fails at once (missing library, no display) exits within a moment with an
     // error status. Exiting with 0 means it handed off to a background process.
@@ -57,8 +81,9 @@ export function launch(
   client: Client,
   launcher: LauncherConfig,
   env: DisplayEnvironment,
+  force = false,
 ): Promise<LaunchResult> {
-  const script = launchScript(launcher, env)
+  const script = launchScript(launcher, env, force)
   if (!script) return Promise.resolve({ ok: false, error: 'failed', detail: 'Invalid launcher' })
 
   return new Promise((resolve) => {
@@ -88,9 +113,11 @@ export function launch(
         const line = stdout
           .split('\n')
           .map((l) => l.trim())
-          .find((l) => l.startsWith('LAUNCHED') || l.startsWith('ERROR '))
+          .find((l) => /^(LAUNCHED|RUNNING|ERROR) /.test(l))
         if (line?.startsWith('LAUNCHED')) {
           resolve({ ok: true })
+        } else if (line?.startsWith('RUNNING')) {
+          resolve({ ok: false, error: 'alreadyRunning' })
         } else if (line) {
           const [, code, ...rest] = line.split(' ')
           const error = code === 'notFound' || code === 'exited' ? code : 'failed'

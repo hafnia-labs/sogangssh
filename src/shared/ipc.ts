@@ -58,7 +58,14 @@ export type ServerStatus = {
 /** A launcher as the renderer sees it (the command and environment stay in main). */
 export type LauncherInfo = { id: string; label: string }
 
-export type LaunchErrorCode = 'notConnected' | 'noDisplay' | 'notFound' | 'exited' | 'failed'
+export type LaunchErrorCode =
+  | 'notConnected'
+  | 'noDisplay'
+  | 'notFound'
+  | 'exited'
+  | 'failed'
+  /** A copy started by this launcher is already on the desktop (run again with `force`). */
+  | 'alreadyRunning'
 
 export type LaunchResult = { ok: true } | { ok: false; error: LaunchErrorCode; detail?: string }
 
