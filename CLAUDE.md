@@ -129,4 +129,4 @@ Not checked yet. Record the results of the checklist in DESIGN.md "Server-side r
 - Server address: `<server-address>`, port `<port>` (built-in default in `src/renderer/src/config.ts`). Other users may have a different server or port: they change it under Advanced settings, and the app remembers each user's last successful login (`settings.json` via `src/main/settings.ts`).
 - Login: password works, no OTP prompt. Host key: `SHA256:<host-key-fingerprint>`.
 - Connection path / VPN off campus: (not checked)
-- App name: sogangSSH (appId `com.sogangssh.app`, set in `src/renderer/src/config.ts`, `src/main/index.ts`, `electron-builder.yml`). The repository and local folder are still named `ohmic` / `OHMIC`.
+- App name: sogangSSH (appId `com.sogangssh.app`, set in `src/renderer/src/config.ts`, `src/main/index.ts`, `electron-builder.yml`). Repository: public `hafnia-labs/sogangssh` (MIT). The old private repo `chaewoon11/ohmic` is archived (remote `ohmic-archive`); the local folder is still named `OHMIC`.

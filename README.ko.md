@@ -42,6 +42,10 @@ npm run build:win    # Windows 설치 파일 만들기 (release/)
 - [DESIGN.md](DESIGN.md): 제품 설계 문서 (영어)
 - [CLAUDE.md](CLAUDE.md): 구현 메모와 학교 서버 확인 결과 (영어)
 
+## 라이선스
+
+[MIT](LICENSE). MIT 라이선스는 이 프로젝트의 코드에만 적용됩니다. 서강대학교 엠블럼에는 적용되지 않으며, 엠블럼은 학교 규정을 따릅니다.
+
 ## 참고
 
 - 학생 프로젝트이며, 서강대학교 공식 서비스가 아닙니다.

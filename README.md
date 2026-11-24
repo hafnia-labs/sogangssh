@@ -42,6 +42,10 @@ Stack: Electron, electron-vite, React, TypeScript, Tailwind CSS, shadcn/ui, ssh2
 - [DESIGN.md](DESIGN.md): the product design.
 - [CLAUDE.md](CLAUDE.md): implementation notes and the results of checks on the school server.
 
+## License
+
+[MIT](LICENSE). The MIT license covers this project's code only. It does not cover the Sogang University emblem, which stays subject to the university's rules.
+
 ## Notes
 
 - This is a student project. It is not an official Sogang University service.
