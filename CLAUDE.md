@@ -126,6 +126,7 @@ npm run build:win    Windows NSIS installer (release/)
 - Electron security: `contextIsolation: true`, `nodeIntegration: false`; never use Node APIs directly in the renderer.
 - Never leave passwords, private keys, or OTPs in logs, settings files, or commits.
 - The repository is public: never commit server details (addresses, ports, host names, host key fingerprints, license servers, account names), not even in commit messages. Keep them in the git-ignored `CLAUDE.local.md`; the app needs none at build time. Before committing, check the diff and the message for them.
+- Follow [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md): section 1 before every commit, section 2 when adding or changing a feature, section 3 before a release, section 4 when testing on the school server.
 - Do not guess server commands (vncserver, TCAD launch commands, environment script paths). Use only the values recorded under "Server pre-check results" below.
 
 ## Server pre-check results
