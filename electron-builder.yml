@@ -3,13 +3,12 @@ productName: sogangSSH
 directories:
   buildResources: build
   output: release/${version}
+# Allow-list: ship only the built app. electron-builder packs the working folder, not the git
+# tree, so a deny-list would also pick up untracked local files (CLAUDE.local.md, notes, .claude/).
+# package.json and production node_modules are always added by electron-builder.
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.*'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.json,.editorconfig}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!{DESIGN.md,CLAUDE.md}'
+  - out/**
+  - resources/**
 asarUnpack:
   - resources/**
 win:
