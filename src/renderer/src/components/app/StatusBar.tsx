@@ -1,5 +1,4 @@
 import { useI18n } from '@/i18n/context'
-import { mockSession } from '@/mocks/session'
 
 type Props = { user: string; host: string; display: number | null }
 
@@ -11,8 +10,6 @@ export function StatusBar({ user, host, display }: Props) {
       <span>
         {user}@{host}
       </span>
-      {/* Latency is still mock data; measured from SSH keepalives in a later stage. */}
-      <span>{t.statusBar.latency(mockSession.latencyMs)}</span>
       {display !== null && <span className="ml-auto">{t.statusBar.display(display)}</span>}
     </footer>
   )

@@ -54,6 +54,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - Local graph viewer for result files (.plt)
 - Multiple saved server profiles
 - Auto update
+- Connection latency in the status bar, measured from real round trips (a placeholder value was shown until 0.1.0 and then removed)
 
 ### Out of scope
 
@@ -201,7 +202,7 @@ There are only two screens: login and main. On the main screen, the remote deskt
 │ users,      │                              │                 │
 │ licenses    │                              │                 │
 ├─────────────┴──────────────────────────────┴─────────────────┤
-│ Status bar: user@server · latency · display · resolution     │
+│ Status bar: user@server · display                            │
 └──────────────────────────────────────────────────────────────┘
 ```
 

@@ -244,7 +244,6 @@ export const ko = {
     },
   },
   statusBar: {
-    latency: (ms: number) => `지연 ${ms}ms`,
     display: (display: number) => `디스플레이 :${display}`,
   },
 }

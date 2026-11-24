@@ -249,7 +249,6 @@ export const en: Messages = {
     },
   },
   statusBar: {
-    latency: (ms) => `Latency ${ms} ms`,
     display: (display) => `Display :${display}`,
   },
 }
