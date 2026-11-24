@@ -89,6 +89,16 @@ How it works:
 - The app UI supports Korean and English. Never hard-code user-facing strings in components: add the key to `src/renderer/src/i18n/ko.ts` and `en.ts` (the `Messages` type keeps them in sync) and read it with `useI18n().t`.
 - Server output (terminal text, file names, commands) is not translated.
 
+## Visual explanations
+
+When the user asks to visualize something ("시각화", "visually explain", "show it"), build an interactive 3D Artifact rather than a flat diagram:
+
+- A three.js scene (UMD build from cdnjs, OrbitControls from jsDelivr) with each machine as a 3D object: server racks with blinking LEDs for servers, a monitor for the student PC, a laptop for the developer PC, a box for an installer, a floating sheet for a file, a chip for app memory. Label each with an HTML tag projected from 3D.
+- Show data flow as a glowing packet that travels along curved paths one step at a time, with a tag naming what it carries, the active path highlighted, and a caption per step. Color by meaning (risk, safe, normal), consistently.
+- Add controls: a toggle between alternatives (e.g. now / after), previous / next step, pause, and drag to rotate and zoom. Respect reduced motion and both light and dark themes.
+- Keep a short written explanation and a comparison table under the scene, in Korean.
+- Never put server details (addresses, ports, host names, license servers) into it; mask them.
+
 ## Directory layout
 
 ```
