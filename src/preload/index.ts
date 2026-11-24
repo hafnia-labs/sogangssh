@@ -7,6 +7,8 @@ import {
   type DisplayStartResult,
   type ConnectResult,
   type LastLogin,
+  type PasswordChangeRequest,
+  type PasswordChangeResult,
   type LauncherInfo,
   type ServerStatus,
   type LaunchResult,
@@ -33,6 +35,11 @@ const api = {
     disconnect: (): Promise<void> => ipcRenderer.invoke(IpcChannel.sshDisconnect),
     onStatus: (listener: (status: SshStatus) => void) =>
       subscribe<SshStatus>(IpcChannel.sshStatus, listener),
+  },
+  password: {
+    /** Change the server account password (current and new are sent to `passwd` only). */
+    change: (req: PasswordChangeRequest): Promise<PasswordChangeResult> =>
+      ipcRenderer.invoke(IpcChannel.passwordChange, req),
   },
   settings: {
     getLastLogin: (): Promise<LastLogin | null> =>

@@ -211,6 +211,7 @@ export function LoginScreen({ onLogin }: Props) {
               {pending && <Loader2 className="animate-spin" />}
               {pending ? t.login.submitting : t.login.submit}
             </Button>
+            <p className="text-muted-foreground text-xs">{t.login.forgotPassword}</p>
           </form>
         </CardContent>
       </Card>

@@ -13,6 +13,7 @@ import { useI18n } from '@/i18n/context'
 import type { ConnectionStatus } from '@/types'
 import type { DisplayEndResult } from '../../../../shared/ipc'
 import { BrandName } from './BrandName'
+import { ChangePasswordButton } from './ChangePasswordButton'
 import { ConnectionBadge } from './ConnectionBadge'
 import { EndSessionButton } from './EndSessionButton'
 import { LanguageToggle } from './LanguageToggle'
@@ -75,6 +76,7 @@ export function Toolbar({
       <div className="ml-auto flex items-center gap-1">
         <ConnectionBadge status={status} />
         <LanguageToggle />
+        <ChangePasswordButton disabled={status !== 'connected'} />
         <EndSessionButton disabled={status !== 'connected'} onEnd={onEndSession} />
         <IconButton label={t.toolbar.disconnect} onClick={onDisconnect}>
           <LogOut />

@@ -41,6 +41,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - Persistent session: one remote desktop per user that can outlive the app, so long simulations keep running and the same screen comes back at the next login (see "Session lifetime")
 - Exit choice: closing the app asks "Keep running" (leave the session for later) or "End everything" (stop the desktop and every program on it)
 - Connection status indicator and automatic reconnect on disconnect
+- Password change: a logged-in user can change their server account password from the toolbar (see "Password change"). A forgotten password cannot be reset from the app; the login screen tells the user to ask the server administrator
 
 ### After the MVP
 
@@ -83,6 +84,16 @@ Simulations can run for hours, so the remote desktop must not depend on the app 
 - **Ending without closing the app.** A visible "End session" action in the toolbar does the same as *End everything* without closing the app.
 - **Leftover cleanup.** If a session's processes were killed without cleanup, the next login stops whatever is left (Xvnc, window manager, programs on that display), not only the session folder, so no license stays held by an unreachable session.
 - **Long-idle sessions**: a desktop that no app has been connected to for 24 hours ends by itself (Xvnc `MaxDisconnectionTime`), so a forgotten session cannot hold licenses for days. A "session running since…" notice at login may be added later.
+
+## Password change
+
+Accounts on the school server are local accounts (`/etc/passwd` and `/etc/shadow`), so a logged-in user can change their own password with `passwd`. Only the server administrator can reset a forgotten password, so the app does not try; the login screen shows a one-line hint to ask the administrator.
+
+- A toolbar button opens a dialog with the current password, the new password and the new password again. The dialog checks that both new entries match and differ from the current one; the server decides everything else (length, dictionary words, similarity), because its rules come from its own PAM setup (`pam_pwquality` with `retry=3`, then `pam_unix`).
+- Main runs `env LC_ALL=C passwd` on an exec channel with a PTY (`passwd` reads from a terminal, and `passwd --stdin` is root-only) and answers the prompts by text: `(current) UNIX password:` gets the current password, `New password:` and `Retype new password:` get the new one. `LC_ALL=C` keeps the prompts in English whatever the server locale is.
+- The passwords travel only over the PTY (terminal echo is off for these prompts), never on a command line, in logs or in settings. Server output returned to the renderer has both passwords removed.
+- Results: success (`all authentication tokens updated successfully`); wrong current password (`passwd` ends before asking for a new one); rejected new password (`passwd` asks for a new password again after a `BAD PASSWORD:` line: the app interrupts it and shows that server line as-is); any other failure shows the end of the output.
+- The SSH session that is already open stays logged in. The new password is needed from the next login.
 
 ## How it works and architecture
 
@@ -189,7 +200,8 @@ The principle is "ask for the password at every login, store nothing secret".
 3. On the first connection the app shows the server's SHA256 host key fingerprint and asks the user to trust it. It is saved only after the login succeeds; if it changes later, the connection is blocked with a warning that shows both fingerprints.
 4. VNC binds only to the server's localhost and is reachable only through SSH port forwarding. No external ports are opened.
 5. Electron security settings: `contextIsolation: true`, `nodeIntegration: false`, expose only the needed IPC from preload.
-6. The window only ever shows the app's own page: navigation is blocked (including a file dropped onto the window), and main accepts IPC only from the main frame of that exact page, so no other page can reach the SSH session through the preload API.
+6. Password change sends the current and new passwords only to `passwd` over a PTY on the existing SSH connection (see "Password change"); they are never put on a command line, logged or stored.
+7. The window only ever shows the app's own page: navigation is blocked (including a file dropped onto the window), and main accepts IPC only from the main frame of that exact page, so no other page can reach the SSH session through the preload API.
 
 Passwords, private keys, and OTPs must never appear in log files.
 

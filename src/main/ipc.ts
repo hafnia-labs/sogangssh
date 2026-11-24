@@ -5,6 +5,7 @@ import {
   type DisplayStartResult,
   type LaunchResult,
   type LauncherInfo,
+  type PasswordChangeResult,
   type ServerStatus,
   type SshStatus,
   type TerminalOpenResult,
@@ -16,6 +17,7 @@ import { launch } from './remote/launch'
 import { ServerMonitor } from './remote/server-monitor'
 import { settings } from './settings'
 import { SshConnection } from './ssh/connection'
+import { changePassword, isValidPasswordRequest } from './ssh/password'
 import { RemoteShell } from './ssh/shell'
 
 function send(channel: string, payload: unknown): void {
@@ -156,6 +158,26 @@ export function registerIpcHandlers(): void {
     if (!env) return { ok: false, error: 'noDisplay' }
     return launch(client, launcher, env)
   })
+
+  let changingPassword = false
+
+  ipcMain.handle(
+    IpcChannel.passwordChange,
+    async (event, req: unknown): Promise<PasswordChangeResult> => {
+      if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
+      if (!isValidPasswordRequest(req)) return { ok: false, error: 'invalidInput' }
+      const client = ssh.activeClient
+      if (!client) return { ok: false, error: 'notConnected' }
+      // One passwd at a time: a second dialog submit must not race the first.
+      if (changingPassword) return { ok: false, error: 'failed', detail: 'busy' }
+      changingPassword = true
+      try {
+        return await changePassword(client, req)
+      } finally {
+        changingPassword = false
+      }
+    },
+  )
 
   ipcMain.handle(IpcChannel.appClose, (event, choice: unknown) => {
     if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }

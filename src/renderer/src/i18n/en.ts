@@ -16,6 +16,8 @@ export const en: Messages = {
     errorEmpty: 'Enter your username and password.',
     errorPort: 'Port must be a number from 1 to 65535.',
     technicalDetail: 'Details',
+    forgotPassword:
+      'Forgot your password? Ask the server administrator (lab administrator) to reset it. The app cannot reset it.',
   },
   connectError: {
     invalidInput: 'Check what you entered.',
@@ -48,6 +50,7 @@ export const en: Messages = {
     hideTerminal: 'Hide terminal',
     disconnect: 'Disconnect (the remote desktop keeps running on the server)',
     endSession: 'End session',
+    changePassword: 'Change password',
   },
   connection: {
     connected: 'Connected',
@@ -130,6 +133,30 @@ export const en: Messages = {
     confirm: 'End session',
     ending: 'Ending…',
     failed: 'Could not end the session.',
+  },
+  changePassword: {
+    title: 'Change server password',
+    description:
+      'Changes the password of your school server account. You stay connected now; use the new password from the next login.',
+    current: 'Current password',
+    next: 'New password',
+    confirm: 'Confirm new password',
+    cancel: 'Cancel',
+    submit: 'Change',
+    submitting: 'Changing…',
+    success: 'Password changed. Use the new password from the next login.',
+    errorEmpty: 'Fill in every field.',
+    errorMismatch: 'The new passwords do not match.',
+    errorSame: 'The new password is the same as the current one.',
+    errors: {
+      notConnected: 'Not connected to the server.',
+      invalidInput:
+        'The password contains a character that cannot be used (such as a line break) or is too long.',
+      wrongPassword: 'The current password is incorrect.',
+      rejected:
+        'The server rejected the new password. Use a longer password that is harder to guess.',
+      failed: 'Could not change the password.',
+    },
   },
   exit: {
     title: 'Close the app?',

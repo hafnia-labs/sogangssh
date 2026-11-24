@@ -15,6 +15,8 @@ export const ko = {
     errorEmpty: '아이디와 비밀번호를 입력하세요.',
     errorPort: '포트는 1부터 65535 사이의 숫자여야 합니다.',
     technicalDetail: '자세한 내용',
+    forgotPassword:
+      '비밀번호를 잊었다면 서버 관리자(연구실 관리자)에게 초기화를 요청하세요. 앱에서는 재설정할 수 없습니다.',
   },
   connectError: {
     invalidInput: '입력값을 확인하세요.',
@@ -46,6 +48,7 @@ export const ko = {
     hideTerminal: '터미널 접기',
     disconnect: '연결 끊기 (원격 화면은 서버에서 계속 실행)',
     endSession: '세션 종료',
+    changePassword: '비밀번호 변경',
   },
   connection: {
     connected: '연결됨',
@@ -126,6 +129,28 @@ export const ko = {
     confirm: '세션 종료',
     ending: '종료하는 중…',
     failed: '세션을 종료하지 못했습니다.',
+  },
+  changePassword: {
+    title: '서버 비밀번호 변경',
+    description:
+      '학교 서버 계정의 비밀번호를 바꿉니다. 지금 접속은 유지되고, 다음 로그인부터 새 비밀번호를 사용합니다.',
+    current: '현재 비밀번호',
+    next: '새 비밀번호',
+    confirm: '새 비밀번호 확인',
+    cancel: '취소',
+    submit: '변경',
+    submitting: '변경하는 중…',
+    success: '비밀번호를 바꿨습니다. 다음 로그인부터 새 비밀번호를 사용하세요.',
+    errorEmpty: '모든 칸을 입력하세요.',
+    errorMismatch: '새 비밀번호와 확인이 다릅니다.',
+    errorSame: '새 비밀번호가 현재 비밀번호와 같습니다.',
+    errors: {
+      notConnected: '서버에 접속되어 있지 않습니다.',
+      invalidInput: '비밀번호에 사용할 수 없는 문자(줄바꿈 등)가 있거나 너무 깁니다.',
+      wrongPassword: '현재 비밀번호가 맞지 않습니다.',
+      rejected: '서버가 새 비밀번호를 거부했습니다. 더 길고 추측하기 어려운 비밀번호를 사용하세요.',
+      failed: '비밀번호를 바꾸지 못했습니다.',
+    },
   },
   exit: {
     title: '앱을 닫을까요?',

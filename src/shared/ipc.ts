@@ -16,6 +16,7 @@ export const IpcChannel = {
   serverStatus: 'server:status',
   launcherList: 'launcher:list',
   launcherRun: 'launcher:run',
+  passwordChange: 'password:change',
   appCloseRequested: 'app:closeRequested',
   appClose: 'app:close',
 } as const
@@ -99,6 +100,18 @@ export type TerminalOpenResult =
 
 /** Pushed from main when the server shell ends (e.g. the user typed `exit`). */
 export type TerminalExit = { code: number | null }
+
+export type PasswordChangeRequest = { current: string; next: string }
+
+export type PasswordChangeErrorCode =
+  'notConnected' | 'invalidInput' | 'wrongPassword' | 'rejected' | 'failed'
+
+/**
+ * Result of changing the server account password with `passwd`. `detail` is server output
+ * (passwords removed), shown as-is: for `rejected` it is the server's reason line.
+ */
+export type PasswordChangeResult =
+  { ok: true } | { ok: false; error: PasswordChangeErrorCode; detail?: string }
 
 /** Server and ID of the last successful login (no password). */
 export type LastLogin = { host: string; port: number; username: string }
