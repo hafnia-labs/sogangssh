@@ -1,6 +1,7 @@
 import type { Client } from 'ssh2'
 import type { ServerLicense, ServerStatus, ServerUser } from '../../shared/ipc'
 import type { LauncherConfig } from '../launchers'
+import type { LicenseRead } from './license-setting'
 import { exec } from './exec'
 import { LICENSE_SCRIPT, STATUS_SCRIPT } from './status-script'
 
@@ -108,7 +109,9 @@ const idleRank = (idle: string) => {
   return m ? Number(m[1]) * 60 + Number(m[2]) : Number.MAX_SAFE_INTEGER
 }
 
-const words = /^[\w@.:/+-]+$/
+// Values passed to the license script: no shell syntax, and never something that reads as an option.
+const words = /^[\w@.,:/+-]+$/
+const safeWord = (w: string) => words.test(w) && !w.startsWith('-')
 
 // Marks this panel's commands so the status script can leave them out of "my processes".
 const RUN = 'env SOGANGSSH_MONITOR=1 sh -s'
@@ -125,10 +128,13 @@ export class ServerMonitor {
   private prev: Sample | null = null
   private licenses: ServerLicense[] | null = null
   private licenseError: string | undefined
+  private licenseMissing = false
   private latest: ServerStatus | null = null
 
   constructor(
     private readonly launchers: LauncherConfig[],
+    /** The user's license setting for this connection (see `license-setting.ts`). */
+    private readonly licenseSetting: (client: Client) => Promise<LicenseRead>,
     private readonly onStatus: (status: ServerStatus) => void,
   ) {}
 
@@ -154,6 +160,7 @@ export class ServerMonitor {
     this.prev = null
     this.licenses = null
     this.licenseError = undefined
+    this.licenseMissing = false
     this.latest = null
   }
 
@@ -173,33 +180,38 @@ export class ServerMonitor {
   private async refreshLicenses(): Promise<void> {
     const client = this.client
     if (!client || this.busy.license) return
-    // One query per license file list, for the features its launchers declare.
-    const groups = new Map<string, Set<string>>()
-    for (const l of this.launchers) {
-      const servers = l.env['SNPSLMD_LICENSE_FILE']
-      if (!servers || !l.licenseFeatures?.length) continue
-      const set = groups.get(servers) ?? new Set<string>()
-      l.licenseFeatures.forEach((f) => set.add(f))
-      groups.set(servers, set)
-    }
-    if (groups.size === 0) return
+    // The features every launcher declares, queried on the user's own license servers.
+    const features = new Set(this.launchers.flatMap((l) => l.licenseFeatures ?? []))
+    if (features.size === 0) return
     this.busy.license = true
     try {
+      const setting = await this.licenseSetting(client)
+      if (client !== this.client) return
       const licenses: ServerLicense[] = []
       let error: string | undefined
-      for (const [servers, features] of groups) {
-        const args = [servers, ...features]
-        if (!args.every((a) => words.test(a))) continue
-        const r = await exec(client, `${RUN} ${args.join(' ')}`, LICENSE_TIMEOUT_MS, LICENSE_SCRIPT)
+      // Without a setting there is nothing to ask; the panel says why.
+      this.licenseMissing = !setting.ok && setting.reason === 'notSet'
+      // A failed read (timeout, channel error) shows its cause; it carries no server details.
+      if (!setting.ok && setting.reason === 'failed') error = setting.detail
+      const args = setting.ok ? [setting.value, ...features] : []
+      if (args.length > 0 && args.every(safeWord)) {
+        // Arguments go in over stdin (`set --`), never on the command line where `ps` shows them.
+        const script = `set -- ${args.join(' ')}\n${LICENSE_SCRIPT}`
+        const r = await exec(client, RUN, LICENSE_TIMEOUT_MS, script)
         if (client !== this.client) return
         const parsed = parseLicenses(r.stdout)
         licenses.push(...parsed.licenses)
-        error = parsed.error ?? (parsed.licenses.length === 0 ? (r.error ?? 'no data') : error)
+        error = parsed.error ?? (parsed.licenses.length === 0 ? (r.error ?? 'no data') : undefined)
       }
       this.licenses = licenses
       this.licenseError = error
       if (this.latest) {
-        this.latest = { ...this.latest, licenses, licenseError: error }
+        this.latest = {
+          ...this.latest,
+          licenses,
+          licenseError: error,
+          licenseMissing: this.licenseMissing,
+        }
         this.onStatus(this.latest)
       }
     } finally {
@@ -274,6 +286,7 @@ export class ServerMonitor {
       processes,
       licenses: this.licenses,
       licenseError: this.licenseError,
+      licenseMissing: this.licenseMissing,
       updatedAt: at,
     }
     this.onStatus(this.latest)

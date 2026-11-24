@@ -66,13 +66,22 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 A launcher is a config entry: `{ id, label, command, env, licenseFeatures? }`.
 
 - `command` runs on the session's display with `DISPLAY` and `XAUTHORITY` set.
-- `env` holds the program's environment (for Sentaurus: `TCAD_HOME`, PATH, `STDB`, `SNPSLMD_LICENSE_FILE`), so users do not need a personal profile.
+- `env` holds the program's fixed environment (for Sentaurus: `TCAD_HOME`, PATH, `STDB`). The license servers are not in the config: they come from the user's own account (see "License setting").
 - `licenseFeatures` (optional) tells the server panel which license features to show.
 - Launcher commands and paths come only from "Server pre-check results" in `CLAUDE.md`; they are never guessed.
 - The config stays in the main process; the renderer only sees `{ id, label }` and asks to run a launcher by id. License features are not configured yet because their names have not been checked on the license server.
 - A launch streams a short `sh` script to `sh -s` that exports the session's `DISPLAY`/`XAUTHORITY` and the launcher env, then starts the program detached (`setsid nohup`), so it belongs to the persistent desktop: it keeps running after *Keep running* and is stopped by *End everything*. A program that exits with an error within 2 seconds is reported with the end of its log.
 - One copy per launcher: a second copy would take another license (`swb_all`, …) and is usually a double click. Launched programs carry `SOGANGSSH_LAUNCHER=<id>` in their environment; before starting, the script looks for an own process with that marker, the same `DISPLAY` and the program's name. If one is running, nothing is started and the app says so, with an *Open another* action that starts a second copy anyway. The server has no `wmctrl` or `xdotool`, so the app cannot bring the existing window to the front; the user finds it on the desktop. Copies started by hand from the terminal have no marker and are not detected. Programs a launched program starts itself inherit its marker: a Visual opened from inside Workbench carries the Workbench marker, so the Visual button does not see it and starts a new copy. This is accepted, because matching Visual by name alone would also catch the `svisual` batch jobs that Workbench runs.
 - A forced second copy appends to the launcher's log instead of truncating it, so the first copy's log stays readable.
+
+### License setting
+
+Sentaurus finds its license servers through `SNPSLMD_LICENSE_FILE`. Every account gets a `~/.bash_profile` when it is created (csh syntax despite the name, not read automatically at login) that sets it, together with the other Synopsys tool settings; users are told to `source` it before starting a tool by hand. The app reads the value from there, so neither the installer nor the repository contains license servers, and each user gets their own account's setting.
+
+- After login, main runs `timeout 5 csh -f -c 'source ~/.bash_profile >& /dev/null; printenv SNPSLMD_LICENSE_FILE' < /dev/null` (through `sh -s`, like the other scripts). The file is only read, never changed. If csh prints nothing (for example a line the user added stops csh before the license line, which is the last one, or csh hangs and is stopped after 5 seconds), the script also looks for a `setenv SNPSLMD_LICENSE_FILE <value>` line in the file itself.
+- The value is checked: letters, digits and `@ . , : / + - _` only, not starting with `-` (`$` and `~` are refused on purpose, since nothing would expand them). It is kept in main's memory for this connection only: never written to disk, never sent to the renderer, and forgotten on logout, on a dropped connection and when the app quits. Only a successful read is kept, so a failed one is tried again at the next use; edits to the file apply from the next login.
+- Launchers with license features get it as `SNPSLMD_LICENSE_FILE`. "Not set" (nothing found) and "could not read" (timeout, channel error) are told apart: the first asks the user to check `~/.bash_profile` and ask the TA, the second to try again.
+- The server panel uses it for the license usage query, passing it on standard input (never on a command line, where other users could see it in `ps`). Without a setting, the panel says so instead of a bare "unavailable".
 
 ## Session lifetime
 
@@ -230,7 +239,7 @@ The principle is "ask for the password at every login, store nothing secret".
 5. Electron security settings: `contextIsolation: true`, `nodeIntegration: false`, expose only the needed IPC from preload.
 6. Password change sends the current and new passwords only to `passwd` over a PTY on the existing SSH connection (see "Password change"); they are never put on a command line, logged or stored.
 7. The window only ever shows the app's own page: navigation is blocked (including a file dropped onto the window), and main accepts IPC only from the main frame of that exact page, so no other page can reach the SSH session through the preload API.
-8. Server details (addresses, ports, host names, host keys, license servers) are never committed: the repository is public. Values the build needs (the Sentaurus license servers) come from the git-ignored `.env.local` (template: `.env.example`); developer notes about the server go in the git-ignored `CLAUDE.local.md`. Builds that contain them are shared only on campus, never published.
+8. Server details (addresses, ports, host names, host keys, license servers) are never committed: the repository is public. The app is built without any of them: users type the server details, and the license servers are read from the user's own `~/.bash_profile` after login. Developer notes about the server go in the git-ignored `CLAUDE.local.md`.
 
 Passwords, private keys, and OTPs must never appear in log files.
 
@@ -254,7 +263,7 @@ If no virtual display program is available, ask the IT administrator to install 
 
 Pushing a tag triggers GitHub Actions to build Windows and macOS installers and upload them to GitHub Releases.
 
-Open question for stage 8: an installer built with `.env.local` contains the license servers, and public GitHub Releases would expose them. Either build and share installers only on campus (for example the lab's shared drive), or keep the license servers out of the build (for example read them from a file on the school server at launch). Decide before setting up Releases.
+Installers contain no server details (the license servers are read from each user's account after login), so they can be published on public GitHub Releases.
 
 | Platform | Artifact | Notes |
 | --- | --- | --- |

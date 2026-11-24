@@ -14,6 +14,7 @@ import { isAppPage } from './app-page'
 import { launchers } from './launchers'
 import { RemoteDisplay } from './remote/display'
 import { launch } from './remote/launch'
+import { LicenseSetting } from './remote/license-setting'
 import { ServerMonitor } from './remote/server-monitor'
 import { SshConnection } from './ssh/connection'
 import { changePassword, isValidPasswordRequest } from './ssh/password'
@@ -40,7 +41,14 @@ const shell = new RemoteShell({
 
 const display = new RemoteDisplay()
 
-const monitor = new ServerMonitor(launchers, (status) => send(IpcChannel.serverStatus, status))
+// The user's license servers, read from their ~/.bash_profile and kept for this connection only.
+const license = new LicenseSetting()
+
+const monitor = new ServerMonitor(
+  launchers,
+  (client) => license.get(client),
+  (status) => send(IpcChannel.serverStatus, status),
+)
 
 export const ssh = new SshConnection((status: SshStatus) => {
   // A dropped connection takes its channels with it. The remote desktop keeps running on the
@@ -49,6 +57,7 @@ export const ssh = new SshConnection((status: SshStatus) => {
     shell.reset()
     display.detach()
     monitor.stop()
+    license.forget()
   } else {
     const client = ssh.activeClient
     if (client) monitor.start(client)
@@ -157,7 +166,20 @@ export function registerIpcHandlers(): void {
       const env = await display.waitForEnvironment()
       if (ssh.activeClient !== client) return { ok: false, error: 'notConnected' }
       if (!env) return { ok: false, error: 'noDisplay' }
-      return launch(client, launcher, env, force === true)
+      // Licensed programs get the user's own license servers; without them they cannot start.
+      let run = launcher
+      if (launcher.licenseFeatures?.length) {
+        const setting = await license.get(client)
+        if (ssh.activeClient !== client) return { ok: false, error: 'notConnected' }
+        // "Not set" points the user at their profile; a failed read is worth just trying again.
+        if (!setting.ok)
+          return {
+            ok: false,
+            error: setting.reason === 'notSet' ? 'noLicense' : 'licenseReadFailed',
+          }
+        run = { ...launcher, env: { ...launcher.env, SNPSLMD_LICENSE_FILE: setting.value } }
+      }
+      return launch(client, run, env, force === true)
     },
   )
 

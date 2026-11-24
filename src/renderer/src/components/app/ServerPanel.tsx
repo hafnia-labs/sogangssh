@@ -191,7 +191,7 @@ export function ServerPanel() {
             </p>
           ) : s.licenses.length === 0 ? (
             <p className="text-muted-foreground text-xs">
-              {t.server.licenseUnavailable}
+              {s.licenseMissing ? t.server.licenseNoSetting : t.server.licenseUnavailable}
               {s.licenseError && <span className="block font-mono">{s.licenseError}</span>}
             </p>
           ) : (

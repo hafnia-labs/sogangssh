@@ -71,7 +71,7 @@ How it works:
 - `src/main/remote/status-script.ts`: read-only sh scripts (String.raw, no dollar-brace) streamed to `env SOGANGSSH_MONITOR=1 sh -s`. `STATUS_SCRIPT` prints `host`, `uptime`, `load`, `cores`, `mem`, `quota` / `disk`, `me`, `session <user> <idle>`, `usercpu <user> <cpu s> <procs>`, `proc <pid> <cpu s> <rss kB> <comm>`. `LICENSE_SCRIPT <license file> <features…>` prints `license <feature> <used> <issued>` or `licenseError`.
 - `src/main/remote/server-monitor.ts`: runs the status script every 10 s and the license script every 60 s while connected (started and stopped from the connection status in `ipc.ts`), turns two CPU-time samples into cores in use, and pushes `ServerStatus` on `server:status` (`server:getStatus` returns the latest for a re-mounted panel). `components/app/ServerPanel.tsx` renders it.
 - Server facts: `ps` has no `times` field here (use `time`, `[DD-]HH:MM:SS`); combining `-o a=,b=` breaks headers, so pass one `-o` per field; user names need `user:32` or they are cut to 8 characters. `who -u` idle is field 5. Quota: `quota -w` (kB, soft limit 9 GB, hard 10 GB for students).
-- Licenses: the license servers come from `MAIN_VITE_SNPSLMD_LICENSE_FILE` in the git-ignored `.env.local` (inlined into main at build time; see `.env.example`). Sentaurus features (`swb_all`, `sde_all`, `sprocess_all`, `sdevice_all`, `svisual_all`) live on the first entry (the IDEC server); the second entry returns "Invalid returned data". `lmutil` is only shipped with Cadence (`/tools/cadence/IC618/tools.lnx86/bin/lmutil`). `lmstat -a` times out; query each feature with `-f` (about 2 s each). Features per launcher: `licenseFeatures` in `src/main/launchers.ts`.
+- Licenses: the license servers are read after login from the user's own `~/.bash_profile` (`src/main/remote/license-setting.ts`, see DESIGN.md "License setting"), kept in memory for that connection only, and passed to launchers and the license query. Sentaurus features (`swb_all`, `sde_all`, `sprocess_all`, `sdevice_all`, `svisual_all`) live on the first entry (the IDEC server); the second entry returns "Invalid returned data". `lmutil` is only shipped with Cadence (`/tools/cadence/IC618/tools.lnx86/bin/lmutil`). `lmstat -a` times out; query each feature with `-f` (about 2 s each). Features per launcher: `licenseFeatures` in `src/main/launchers.ts`.
 - The monitor can be tested against the real server without the app: bundle it with `npx rolldown src/main/remote/server-monitor.ts --format cjs` and give it a stand-in client whose `exec` runs the system `ssh` (see `CLAUDE.local.md` for the local read-only access, if present).
 
 ## UI (shadcn/ui)
@@ -98,6 +98,7 @@ When the user asks to visualize something ("시각화", "visually explain", "sho
 - Add controls: a toggle between alternatives (e.g. now / after), previous / next step, pause, and drag to rotate and zoom. Respect reduced motion and both light and dark themes.
 - Keep a short written explanation and a comparison table under the scene, in Korean.
 - Never put server details (addresses, ports, host names, license servers) into it; mask them.
+- Keep the source in `report4me/visuals/<name>.html` (`report4me/` is excluded locally in `.git/info/exclude`, never pushed) and pin the artifact in the claude.ai sidebar. To update an existing visual, edit that file and publish it with the artifact's `url`, so the link stays the same. Existing: `license-flow.html` → https://claude.ai/artifact/8FxkeCu3KnpHj9TWzWWk1V
 
 ## Directory layout
 
@@ -124,7 +125,7 @@ npm run build:win    Windows NSIS installer (release/)
 
 - Electron security: `contextIsolation: true`, `nodeIntegration: false`; never use Node APIs directly in the renderer.
 - Never leave passwords, private keys, or OTPs in logs, settings files, or commits.
-- The repository is public: never commit server details (addresses, ports, host names, host key fingerprints, license servers, account names), not even in commit messages. Keep them in the git-ignored `CLAUDE.local.md` (notes) and `.env.local` (values the build needs). Before committing, check the diff and the message for them.
+- The repository is public: never commit server details (addresses, ports, host names, host key fingerprints, license servers, account names), not even in commit messages. Keep them in the git-ignored `CLAUDE.local.md`; the app needs none at build time. Before committing, check the diff and the message for them.
 - Do not guess server commands (vncserver, TCAD launch commands, environment script paths). Use only the values recorded under "Server pre-check results" below.
 
 ## Server pre-check results
@@ -135,7 +136,7 @@ Personal development notes (local keys, account-specific paths, anything about o
 - Login shell prints `Command not found.` (csh/tcsh style). Run server commands through `sh -c '…'` instead of relying on bash syntax.
 - Server: the school server (host name in `CLAUDE.local.md`), CentOS 7.9, kernel 3.10, nfs-utils 1.3.0. It is mainly a Cadence IC design server (`/tools/cadence`, `/tools/config/*_cdn.cshrc`).
 - TCAD: Sentaurus T-2022.03 at `/TOOLS/SYNOPSYS/SENTAURUS/T-2022.03` (uppercase path; `bin/` has `swb`, `sde`, `sdevice`, `sprocess`, `svisual`, `inspect`, `gsub`, `gjob`). The lowercase `/tools/synopsys` is an unrelated, broken NFS automount (`nconnect=4` unsupported on kernel 3.10); ignore it.
-- TCAD environment: Sentaurus needs `TCAD_HOME`, PATH (`$TCAD_HOME/bin`), `STDB=$HOME` and `SNPSLMD_LICENSE_FILE` (two license servers, both reachable from the server). Users cannot be assumed to have a personal profile that sets these, so the Sentaurus launchers set them themselves (`src/main/launchers.ts`). Other `*_HOME` variables (ICC, DC, …) are not needed for Sentaurus.
+- TCAD environment: Sentaurus needs `TCAD_HOME`, PATH (`$TCAD_HOME/bin`), `STDB=$HOME` and `SNPSLMD_LICENSE_FILE` (two license servers, both reachable from the server). The launchers set the fixed ones themselves (`src/main/launchers.ts`); `SNPSLMD_LICENSE_FILE` comes from the `~/.bash_profile` that every account is given at creation (csh syntax; it also sets the other Synopsys tools). Other `*_HOME` variables (ICC, DC, …) are not needed for Sentaurus.
 - Available X programs for testing: `xterm`, `metacity`, `mwm`.
 - Server address and port: not in the repository. Users type them at every login; for development they are in `CLAUDE.local.md` (with the host key fingerprint and license servers).
 - Login: password works, no OTP prompt.

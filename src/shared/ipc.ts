@@ -51,6 +51,8 @@ export type ServerStatus = {
   /** Null until the first license query finishes (or when no launcher defines features). */
   licenses: ServerLicense[] | null
   licenseError?: string
+  /** The user's ~/.bash_profile has no usable license setting, so nothing was queried. */
+  licenseMissing?: boolean
   /** Time of the system sample (ms since epoch). */
   updatedAt: number
 }
@@ -66,6 +68,10 @@ export type LaunchErrorCode =
   | 'failed'
   /** A copy started by this launcher is already on the desktop (run again with `force`). */
   | 'alreadyRunning'
+  /** The license setting could not be read from the user's ~/.bash_profile. */
+  | 'noLicense'
+  /** Reading the license setting failed (timeout, channel error): try again. */
+  | 'licenseReadFailed'
 
 export type LaunchResult = { ok: true } | { ok: false; error: LaunchErrorCode; detail?: string }
 

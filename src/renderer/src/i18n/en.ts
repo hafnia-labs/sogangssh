@@ -71,6 +71,7 @@ export const en: Messages = {
     licenses: 'Licenses',
     licenseLoading: 'Checking the license server…',
     licenseUnavailable: 'Could not read license usage.',
+    licenseNoSetting: 'No license setting in ~/.bash_profile, so usage cannot be checked.',
     licenseNote:
       'Usage across the whole license server (including other schools). Updated every minute.',
     licenseFull: 'All in use',
@@ -124,6 +125,10 @@ export const en: Messages = {
       notFound: (app) => `${app} was not found on the server.`,
       exited: (app) => `${app} exited right after starting.`,
       failed: (app) => `Could not start ${app}.`,
+      noLicense: (app) =>
+        `Could not find the license setting for ${app}. Check that ~/.bash_profile exists on the server; if it does not, ask the TA.`,
+      licenseReadFailed: (app) =>
+        `Could not read the license setting for ${app} from the server. Try again in a moment.`,
       alreadyRunning: (app) =>
         `${app} is already open on the remote desktop. It may be behind another window.`,
     },

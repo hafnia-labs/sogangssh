@@ -5,8 +5,11 @@ import type { DisplayEnvironment } from './display'
 
 const LAUNCH_TIMEOUT_MS = 20_000
 
-/** Words allowed in launch scripts: no quotes, spaces, `;`, backticks or other shell syntax. */
-const SAFE_WORD = /^[\w@.:/$+-]+$/
+/**
+ * Words allowed in launch scripts: no quotes, spaces, `;`, backticks or other shell syntax. `,`
+ * is plain text to sh and appears in license file lists (a redundant server triad).
+ */
+const SAFE_WORD = /^[\w@.,:/$+-]+$/
 const ENV_NAME = /^[A-Z_][A-Z0-9_]*$/
 
 /**

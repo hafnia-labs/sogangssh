@@ -71,6 +71,7 @@ export const ko = {
     licenseFull: '모두 사용 중',
     licenseLoading: '라이선스 서버에 확인하는 중…',
     licenseUnavailable: '라이선스 사용량을 읽지 못했습니다.',
+    licenseNoSetting: '~/.bash_profile에 라이선스 설정이 없어 사용량을 확인할 수 없습니다.',
     licenseNote: '라이선스 서버 전체 사용량입니다 (다른 학교 사용자 포함). 1분마다 갱신합니다.',
     users: '서버 사용자',
     usersCount: (n: number) => `${n}명`,
@@ -120,6 +121,10 @@ export const ko = {
       notFound: (app: string) => `서버에서 ${app} 프로그램을 찾지 못했습니다.`,
       exited: (app: string) => `${app}이(가) 시작하자마자 종료되었습니다.`,
       failed: (app: string) => `${app}을(를) 시작하지 못했습니다.`,
+      noLicense: (app: string) =>
+        `${app}의 라이선스 설정을 찾지 못했습니다. 서버의 ~/.bash_profile이 있는지 확인하고, 없으면 조교에게 문의하세요.`,
+      licenseReadFailed: (app: string) =>
+        `${app}의 라이선스 설정을 서버에서 읽지 못했습니다. 잠시 후 다시 시도하세요.`,
       alreadyRunning: (app: string) =>
         `${app}이(가) 이미 원격 화면에 열려 있습니다. 다른 창 뒤에 가려져 있을 수 있습니다.`,
     },
