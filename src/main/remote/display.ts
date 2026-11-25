@@ -47,6 +47,30 @@ const findLine = (text: string, prefix: string) =>
     .map((l) => l.trim())
     .find((l) => l.startsWith(prefix))
 
+export type ReadyInfo = {
+  display: number
+  port: number
+  password: string
+  xauthority: string
+  reused: boolean
+}
+
+/** The `READY display= port= password= xauthority= reused=` line of `attach`, or null. */
+export function parseReady(stdout: string): ReadyInfo | null {
+  const ready =
+    /^READY display=(\d+) port=(\d+) password=(\S+) xauthority=(\S+) reused=([01])$/.exec(
+      findLine(stdout, 'READY ') ?? '',
+    )
+  if (!ready) return null
+  return {
+    display: Number(ready[1]),
+    port: Number(ready[2]),
+    password: ready[3],
+    xauthority: ready[4],
+    reused: ready[5] === '1',
+  }
+}
+
 /**
  * The user's persistent remote desktop (Xvnc on the server), bridged to noVNC:
  * noVNC (WebSocket) → local ws server → SSH forwardOut → server localhost:<port> (Xvnc).
@@ -151,28 +175,19 @@ export class RemoteDisplay {
         detail: rest.join(' '),
       }
     }
-    const ready =
-      /^READY display=(\d+) port=(\d+) password=(\S+) xauthority=(\S+) reused=([01])$/.exec(
-        findLine(r.stdout, 'READY ') ?? '',
-      )
+    const ready = parseReady(r.stdout)
     if (!ready) {
       if (r.error === 'timeout') return { ok: false, error: 'timeout' }
       const detail = r.error ?? (r.stderr.trim().slice(-300) || 'No READY line from the server')
       return { ok: false, error: 'startFailed', detail }
     }
-    return this.openBridge(client, generation, {
-      display: Number(ready[1]),
-      port: Number(ready[2]),
-      password: ready[3],
-      xauthority: ready[4],
-      reused: ready[5] === '1',
-    })
+    return this.openBridge(client, generation, ready)
   }
 
   private openBridge(
     client: Client,
     generation: number,
-    info: { display: number; port: number; password: string; xauthority: string; reused: boolean },
+    info: ReadyInfo,
   ): Promise<DisplayStartResult> {
     const token = randomBytes(18).toString('base64url')
     const path = `/vnc/${token}`

@@ -18,6 +18,7 @@ Follow [DESIGN.md](DESIGN.md) for the product design. Update DESIGN.md first bef
 - Added after stage 7: first-login change of an expired initial password (tested against a fake forced-change server, not yet with a real new account); the license servers are read from each user's `~/.bash_profile` (tested read-only on the school server); one copy per launcher; the guide character 서강이.
 - Stage 8 (packaging), part 1: Windows NSIS installer built with `npm run build:win` and published as the GitHub pre-release `v0.1.0` with Korean release notes. The release was rebuilt once to drop the placeholder latency from the status bar; its tag now points at the commit that records this. The installer and the packed app were checked for server details (none) and the built app started to an empty login screen. Not yet installed and run on another PC, which is stage 8's check.
 - Next (stage 8, part 2): try the installer on another PC, an app icon, a macOS build through GitHub Actions, and the install guide page. Before every release, go through section 3 of `SECURITY-CHECKLIST.md` and delete old `release/` builds first.
+- Automated bug checks, stage 1 (added after stage 8, part 1): Vitest unit tests in `tests/unit` and the bug catalog `BUGS.md`. Next: stage 2 local fake SSH/RFB server with integration tests, stage 3 Playwright e2e, stage 4 shell scripts on Linux, stage 5 GitHub Actions (server-detail patterns from a CI secret).
 - The UI design is expected to change through iteration; keep screens easy to restyle.
 - Work one stage at a time. Run each stage's "Check" item yourself before moving on.
 
@@ -77,6 +78,14 @@ How it works:
 - Licenses: the license servers are read after login from the user's own `~/.bash_profile` (`src/main/remote/license-setting.ts`, see DESIGN.md "License setting"), kept in memory for that connection only, and passed to launchers and the license query. Sentaurus features (`swb_all`, `sde_all`, `sprocess_all`, `sdevice_all`, `svisual_all`) live on the first entry (the IDEC server); the second entry returns "Invalid returned data". `lmutil` is only shipped with Cadence (`/tools/cadence/IC618/tools.lnx86/bin/lmutil`). `lmstat -a` times out; query each feature with `-f` (about 2 s each). Features per launcher: `licenseFeatures` in `src/main/launchers.ts`.
 - The monitor can be tested against the real server without the app: bundle it with `npx rolldown src/main/remote/server-monitor.ts --format cjs` and give it a stand-in client whose `exec` runs the system `ssh` (see `CLAUDE.local.md` for the local read-only access, if present).
 
+## Testing
+
+- `npm test` runs the Vitest unit tests in `tests/unit/**/*.test.ts` (Node environment, `@` alias as in the renderer, config `vitest.config.ts`, type-checked through `tsconfig.test.json`). They need no server and do not start the app.
+- `tests/unit/helpers/fake-ssh.ts` stands in for ssh2 clients and channels; each test scripts the server's answers. Use made-up hosts (`*.example`) and accounts in tests, never real server details.
+- To test code inside a component or a module that needs Electron, move the pure part into a small module with no change in behavior (for example `components/app/paste-keys.ts`, `ssh/login-prompts.ts`).
+- `BUGS.md` catalogs every bug fixed so far (`B-001`…), with the test that guards it or the later stage that will.
+- Rule: every bug fix adds a `BUGS.md` entry and a test that would have caught it (name the bug ID in the test). If no automated test can reach it yet, the entry says which stage will cover it or that it is checked by hand.
+
 ## UI (shadcn/ui)
 
 - shadcn/ui, preset `radix-nova` (Radix primitives, Lucide icons, Geist font), base color neutral. Config: `components.json`.
@@ -121,6 +130,7 @@ npm run dev          Run in development (hot reload)
 npm run typecheck    Type-check main/preload and renderer
 npm run lint         ESLint
 npm run format       Prettier
+npm test             Vitest unit tests (tests/unit)
 npm run build:win    Windows NSIS installer (release/)
 ```
 

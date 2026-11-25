@@ -20,7 +20,7 @@ const SAFE_LICENSE = /^[\w@.,:/+-]+$/
  * changed. Run through `sh -s`, so the command stays plain for the csh login shell. Output ends
  * with `LICENSE <value>` (empty when not set).
  */
-const READ_SCRIPT = String.raw`v=$(timeout 5 csh -f -c 'source ~/.bash_profile >& /dev/null; printenv SNPSLMD_LICENSE_FILE' < /dev/null 2>/dev/null | tail -n 1)
+export const READ_SCRIPT = String.raw`v=$(timeout 5 csh -f -c 'source ~/.bash_profile >& /dev/null; printenv SNPSLMD_LICENSE_FILE' < /dev/null 2>/dev/null | tail -n 1)
 if [ -z "$v" ] && [ -r "$HOME/.bash_profile" ]; then
   v=$(sed -n 's/^[[:space:]]*setenv[[:space:]][[:space:]]*SNPSLMD_LICENSE_FILE[[:space:]][[:space:]]*//p' "$HOME/.bash_profile" | tail -n 1 | sed 's/[#;].*//' | tr -d "\"' \t\r")
 fi

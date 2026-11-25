@@ -8,6 +8,7 @@ import type {
 } from '../../shared/ipc'
 import { exec } from '../remote/exec'
 import { knownHosts } from './known-hosts'
+import { isLoginPasswordPrompt } from './login-prompts'
 import { changePassword, isValidPasswordRequest } from './password'
 
 const READY_TIMEOUT_MS = 15_000
@@ -32,12 +33,6 @@ async function loginNeedsPasswordChange(client: Client): Promise<boolean> {
   if (r.stdout.includes(PROBE_MARKER)) return false
   return EXPIRED_OUTPUT.test(`${r.stdout}\n${r.stderr}`)
 }
-
-// Prompts we can answer with the login password. Anything else (OTP, verification code)
-// needs user input, which arrives in a later stage.
-const PASSWORD_PROMPT = /password|passwd|암호|비밀번호/i
-// A password change asked during authentication: never answer it with the login password.
-const CHANGE_PROMPT = /new|retype|again|current|새|재입력|현재|다시/i
 
 export function fingerprintOf(key: Buffer): string {
   return 'SHA256:' + createHash('sha256').update(key).digest('base64').replace(/=+$/, '')
@@ -155,7 +150,7 @@ export class SshConnection {
       }
 
       client.on('keyboard-interactive', (_name, _instructions, _lang, prompts, finish) => {
-        if (prompts.every((p) => PASSWORD_PROMPT.test(p.prompt) && !CHANGE_PROMPT.test(p.prompt))) {
+        if (prompts.every((p) => isLoginPasswordPrompt(p.prompt))) {
           finish(prompts.map(() => req.password))
           return
         }
