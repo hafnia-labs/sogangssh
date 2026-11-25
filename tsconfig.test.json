@@ -3,6 +3,8 @@
   "include": ["vitest.config.ts", "tests/**/*"],
   "compilerOptions": {
     "noEmit": true,
+    // The fake server imports its own files with `.ts` extensions so Node can run it directly.
+    "allowImportingTsExtensions": true,
     "types": ["node"],
     "paths": {
       "@/*": ["./src/renderer/src/*"]

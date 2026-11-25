@@ -8,6 +8,15 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/unit/**/*.test.ts'],
+    // Unit tests (no network) and integration tests (main's real modules against the local fake
+    // server in tests/fake-server).
+    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    server: {
+      deps: {
+        // electron-store imports `electron`; inlining it lets the tests' `vi.mock('electron')`
+        // reach it, so known hosts are stored in a temporary folder.
+        inline: ['electron-store'],
+      },
+    },
   },
 })

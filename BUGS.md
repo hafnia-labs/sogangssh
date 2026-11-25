@@ -1,6 +1,7 @@
 # Bug catalog
 
-Every bug fixed so far, in the order it was found, with the test that keeps it fixed. The
+Every bug fixed so far, in the order it was found, with the test that keeps it fixed. A bug found
+but not fixed yet is marked (open) in its title. The
 repository is public: describe bugs without server details (no addresses, ports, host names,
 account names, host key fingerprints or license servers).
 
@@ -20,13 +21,13 @@ Each entry gives:
 
 ## Test stages
 
-| Stage | What                                                   | Where                | Status  |
-| ----- | ------------------------------------------------------ | -------------------- | ------- |
-| 1     | Vitest unit tests (pure functions, fake ssh2 channels) | `tests/unit/`        | done    |
-| 2     | Local fake SSH / RFB server, integration tests         | `tests/fake-server/` | planned |
-| 3     | Playwright end-to-end tests of the Electron app        | —                    | planned |
-| 4     | Shell scripts run on Linux with stub programs          | —                    | planned |
-| 5     | GitHub Actions; server-detail scan with a secret list  | —                    | planned |
+| Stage | What                                                   | Where                                      | Status  |
+| ----- | ------------------------------------------------------ | ------------------------------------------ | ------- |
+| 1     | Vitest unit tests (pure functions, fake ssh2 channels) | `tests/unit/`                              | done    |
+| 2     | Local fake SSH / RFB server, integration tests         | `tests/fake-server/`, `tests/integration/` | done    |
+| 3     | Playwright end-to-end tests of the Electron app        | —                                          | planned |
+| 4     | Shell scripts run on Linux with stub programs          | —                                          | planned |
+| 5     | GitHub Actions; server-detail scan with a secret list  | —                                          | planned |
 
 "Manual: school server" means the check needs the real server and is done by hand
 (`SECURITY-CHECKLIST.md` section 4).
@@ -78,7 +79,8 @@ Each entry gives:
 - **Fix:** `962444b`. `RemoteDisplay.detach()` and `RemoteShell.reset()` bump a generation
   counter, and results from an older generation are thrown away.
 - **Guard:** `tests/unit/display.test.ts` ("throws away a start from a dropped connection"),
-  `tests/unit/shell.test.ts` ("throws away a shell that opens after a reset").
+  `tests/unit/shell.test.ts` ("throws away a shell that opens after a reset"),
+  `tests/integration/display.test.ts` (the same over a real SSH connection, then a new login).
 - **Found by:** not recorded.
 
 ## B-005: Some error messages were always in English
@@ -102,7 +104,12 @@ Each entry gives:
 - **Fix:** `c99c027` (`src/main/remote/exec.ts`, `launch.ts`, `ssh/shell.ts`, the forwarded
   stream in `remote/display.ts`). The password channel (`ssh/password.ts`) had one from the start.
 - **Guard:** `tests/unit/exec.test.ts`, `launch.test.ts`, `shell.test.ts`, `password.test.ts`
-  and `display.test.ts` each emit an `error` on a fake channel.
+  and `display.test.ts` each emit an `error` on a fake channel. `tests/integration/channels.test.ts`,
+  `display.test.ts` and `launcher.test.ts` break real channels from the fake server (refused
+  exec, channel closed without exit status, connection cut mid-command, refused or closed
+  forward, VNC server gone) and fail on any uncaught exception. ssh2 itself raised no channel
+  `error` in those cases, so a removed listener is caught only by the unit tests (checked by
+  removing the exec and forward listeners: the integration tests still passed).
 - **Found by:** not recorded.
 
 ## B-007: A WebSocket closed early leaked the VNC tunnel channel
@@ -115,7 +122,9 @@ Each entry gives:
 - **Fix:** `c99c027`. The WebSocket is watched from the start, a forward that opens after it
   closed is ended at once, and nothing is written to an ended stream.
 - **Guard:** `tests/unit/display.test.ts` ("ends a forward that opens after the WebSocket
-  closed", "closes the WebSocket on a stream error and never writes to an ended stream").
+  closed", "closes the WebSocket on a stream error and never writes to an ended stream"),
+  `tests/integration/display.test.ts` ("leaks no channel when the WebSocket closes before the
+  forward opens": the fake server counts its open channels).
 - **Found by:** not recorded.
 
 ## B-008: A broken bridge stayed the session
@@ -125,7 +134,8 @@ Each entry gives:
   display stayed black until the app restarted.
 - **Cause:** a bridge `error` after listening did not clear the session.
 - **Fix:** `c99c027`. The bridge is closed and dropped from the session.
-- **Guard:** planned stage 2 (the error cannot be triggered from outside without a real server).
+- **Guard:** `tests/integration/display.test.ts` ("clears the session when the bridge breaks"). The
+  test raises the error on the bridge's server object directly; nothing outside can break it.
 - **Found by:** not recorded.
 
 ## B-009: The server panel stopped refreshing after a reconnect
@@ -137,7 +147,8 @@ Each entry gives:
   blocked every refresh on the new connection.
 - **Fix:** `c99c027`. `ServerMonitor.stop()` clears the busy flags.
 - **Guard:** `tests/unit/server-monitor.test.ts` ("refreshes on a new connection while a query
-  on the old one still hangs").
+  on the old one still hangs"), `tests/integration/monitor.test.ts` (the same with a logout and a
+  new login on the fake server).
 - **Found by:** not recorded.
 
 ## B-010: `passwd` prompts follow the server's locale
@@ -148,7 +159,8 @@ Each entry gives:
 - **Fix:** `9e1a6bc` (before commit): `passwd` runs as `env LC_ALL=C passwd`; `a127700` also asks
   for `LC_ALL=C` / `LANG=C` in the channel environment.
 - **Guard:** `tests/unit/password.test.ts` ("answers the English prompts and asks for the C
-  locale").
+  locale"), `tests/integration/password.test.ts` (command, PTY and `env` request as the fake
+  server receives them).
 - **Found by:** a read-only check of `passwd` on the school server (its default locale is Korean).
 
 ## B-011: Two password changes could run at once
@@ -157,7 +169,8 @@ Each entry gives:
 - **Symptom:** submitting the dialog twice could start two `passwd` runs that raced each other.
 - **Cause:** no guard in the IPC handler.
 - **Fix:** `9e1a6bc` (before commit). A second request returns `busy` (`src/main/ipc.ts`).
-- **Guard:** planned stage 3 (the guard lives in the Electron IPC handler).
+- **Guard:** `tests/integration/ipc.test.ts` ("refuses a second password change while one runs"),
+  which calls main's IPC handlers with `electron` replaced by a stand-in.
 - **Found by:** not recorded.
 
 ## B-012: A cut-off password change was reported as a failure
@@ -170,7 +183,8 @@ Each entry gives:
 - **Fix:** `7171604`. After the confirmation, a cut-off change is `maybeChanged` ("try the new
   password first").
 - **Guard:** `tests/unit/password.test.ts` ("says a change cut off after the confirmation may
-  have gone through", and the channel error case).
+  have gone through", and the channel error case), `tests/integration/password.test.ts` (a fake
+  `passwd` that saves the password and goes quiet).
 - **Found by:** review of `9e1a6bc` in a separate session.
 
 ## B-013: A password change on a dropped connection showed an Electron error
@@ -180,7 +194,8 @@ Each entry gives:
 - **Cause:** ssh2 throws from `exec` (instead of calling back) when the connection is already
   gone, and the throw escaped the IPC handler.
 - **Fix:** `af69e71`. The throw becomes `notConnected`.
-- **Guard:** `tests/unit/password.test.ts` ("reports notConnected when ssh2 throws").
+- **Guard:** `tests/unit/password.test.ts` ("reports notConnected when ssh2 throws"),
+  `tests/integration/password.test.ts` (on a connection the fake server cut).
 - **Found by:** review of `9e1a6bc` in a separate session.
 
 ## B-014: A first login with an expired password never started the desktop
@@ -192,7 +207,8 @@ Each entry gives:
   fed to `passwd`.
 - **Fix:** `a127700`. A marker command runs right after login; if `passwd` answers, the login
   becomes `passwordExpired` and the app asks for a new password.
-- **Guard:** planned stage 2 (fake server that forces a change). Not yet tried with a real new
+- **Guard:** `tests/integration/login.test.ts` ("expired first-login password"): the fake server
+  runs `passwd` instead of every command for an expired account. Not yet tried with a real new
   account (manual: school server).
 - **Found by:** not recorded.
 
@@ -204,7 +220,8 @@ Each entry gives:
 - **Cause:** any prompt containing "password" was answered with the login password.
 - **Fix:** `a127700`. Prompts that ask for a new, retyped or current password are never answered
   (`src/main/ssh/login-prompts.ts`).
-- **Guard:** `tests/unit/login-prompts.test.ts`.
+- **Guard:** `tests/unit/login-prompts.test.ts`, `tests/integration/login.test.ts` ("never answers
+  a password-change prompt during login …": the fake server records every answer).
 - **Found by:** not recorded.
 
 ## B-016: Korean `passwd` prompts during a forced change
@@ -214,7 +231,8 @@ Each entry gives:
   prompts may be Korean even though the app asks for `LC_ALL=C`.
 - **Cause:** only English prompts were matched.
 - **Fix:** `a127700`. Korean prompts, success and error lines are matched too.
-- **Guard:** `tests/unit/password.test.ts` ("answers the Korean prompts of a forced change").
+- **Guard:** `tests/unit/password.test.ts` ("answers the Korean prompts of a forced change"),
+  `tests/integration/login.test.ts` (the same through the expired-login flow).
 - **Found by:** not recorded.
 
 ## B-017: The first-run tour was used up before it opened
@@ -249,7 +267,9 @@ Each entry gives:
   script first looks for an own process with that marker, the same `DISPLAY` and the program's
   name, and reports `RUNNING`.
 - **Guard:** `tests/unit/launch.test.ts` ("marks the program and first looks for a running copy",
-  "skips the check … when forced"). Running the check itself: planned stage 4.
+  "skips the check … when forced"), `tests/integration/launcher.test.ts` and `ipc.test.ts` (the
+  `RUNNING` reply becomes `alreadyRunning`; `force` only when exactly `true`). Running the check
+  itself: planned stage 4.
 - **Found by:** not recorded.
 
 ## B-020: A forced second copy wiped the first copy's log
@@ -258,7 +278,8 @@ Each entry gives:
 - **Symptom:** "Open another" truncated `launch-<id>.log` while the first copy still wrote to it.
 - **Cause:** the log was always opened with `>`.
 - **Fix:** `15fd1b4` (before commit). A forced copy appends (`>>`).
-- **Guard:** `tests/unit/launch.test.ts` ("skips the check and appends to the log when forced").
+- **Guard:** `tests/unit/launch.test.ts` ("skips the check and appends to the log when forced"),
+  `tests/integration/launcher.test.ts` ("opens another copy when forced, appending to the log").
 - **Found by:** review of the uncommitted one-copy change in a separate session.
 
 ## B-021: "Open another" during a launch re-enabled the buttons too early
@@ -289,7 +310,8 @@ Each entry gives:
 - **Cause:** `SAFE_WORD` in `launch.ts` (and the license query check) did not allow `,`.
 - **Fix:** `08b0387`.
 - **Guard:** `tests/unit/launch.test.ts` ("accepts a comma in a license file list"),
-  `tests/unit/license-setting.test.ts` ("accepts several servers and a redundant triad").
+  `tests/unit/license-setting.test.ts` ("accepts several servers and a redundant triad"),
+  `tests/integration/ipc.test.ts` (a triad read from the profile reaches the launch script).
 - **Found by:** review of the uncommitted license-setting change in a separate session.
 
 ## B-024: Reading `~/.bash_profile` could hang or stop early
@@ -300,8 +322,9 @@ Each entry gives:
   an error before the license line.
 - **Fix:** `08b0387` (before commit). `timeout 5 csh … < /dev/null`, and a `sed` fallback that
   reads the `setenv SNPSLMD_LICENSE_FILE` line from the file (`remote/license-setting.ts`).
-- **Guard:** `tests/unit/license-setting.test.ts` (`READ_SCRIPT` checks). Running the script with
-  a hanging and a broken profile: planned stage 4.
+- **Guard:** `tests/unit/license-setting.test.ts` (`READ_SCRIPT` checks),
+  `tests/integration/channels.test.ts` (a read that never answers times out and is tried again).
+  Running the script with a hanging and a broken profile: planned stage 4.
 - **Found by:** review of the uncommitted license-setting change in a separate session, with read-only checks of `csh` on the school server.
 
 ## B-025: License values with a trailing `;` or a leading `-`
@@ -313,8 +336,9 @@ Each entry gives:
 - **Fix:** `08b0387` (before commit). `sed 's/[#;].*//'` in the fallback; `parseLicenseOutput`
   and the server monitor refuse a leading `-`.
 - **Guard:** `tests/unit/license-setting.test.ts` (trailing `;` and leading `-` refused),
-  `tests/unit/server-monitor.test.ts` ("does not query with a value that reads as an option").
-  The `sed` step itself: planned stage 4.
+  `tests/unit/server-monitor.test.ts` ("does not query with a value that reads as an option"),
+  `tests/integration/monitor.test.ts` (the same with the value read over SSH). The `sed` step
+  itself: planned stage 4.
 - **Found by:** review of the uncommitted license-setting change in a separate session (the trailing `;` is not in the review notes; only the fix is visible).
 
 ## B-026: A line printed by the user's profile could pass for the setting
@@ -334,7 +358,8 @@ Each entry gives:
 - **Cause:** no difference between "not set" and "could not read".
 - **Fix:** `08b0387` (before commit). `notSet` vs `failed`; only successful reads are cached.
 - **Guard:** `tests/unit/license-setting.test.ts` ("tells 'not set' apart from a failed read",
-  "keeps a successful read … retries a failed one").
+  "keeps a successful read … retries a failed one"), `tests/integration/channels.test.ts` and
+  `ipc.test.ts` (`noLicense` vs `licenseReadFailed` at the launcher).
 - **Found by:** review of the uncommitted license-setting change in a separate session.
 
 ## B-028: License servers were visible to other users in `ps`
@@ -345,7 +370,8 @@ Each entry gives:
 - **Cause:** the arguments were on the `sh -s` command line.
 - **Fix:** `08b0387`. They go over stdin as `set -- …`.
 - **Guard:** `tests/unit/server-monitor.test.ts` ("passes the license query arguments over
-  stdin, never on the command line").
+  stdin, never on the command line"), `tests/integration/monitor.test.ts` (every command the fake
+  server received).
 - **Found by:** review of the uncommitted license-setting change in a separate session.
 
 ## B-029: The status bar showed a fake latency
@@ -422,3 +448,18 @@ Each entry gives:
 - **Guard:** `tests/unit/display.test.ts` ("starts Xvnc with -SendPrimary=0"). Verified on the
   school server (manual).
 - **Found by:** not recorded.
+
+## B-036: A command on a just-dropped connection rejects instead of failing cleanly (open)
+
+- **Date:** 2026-11-25 (found, not fixed).
+- **Symptom:** none seen yet. In one integration run the server panel's query hit a connection
+  that had just dropped and left an unhandled promise rejection ("Not connected") in main.
+- **Cause:** ssh2 throws from `exec` when its socket is already gone, before `SshConnection` has
+  seen the `close` event. `remote/exec.ts` calls `client.exec` inside a Promise without a `try`,
+  so the call rejects. Its callers (server monitor, license read, display upload) expect it to
+  resolve with an `error`. The same throw was fixed for the password change in B-013.
+- **Fix:** not yet.
+- **Guard:** `tests/integration/channels.test.ts` ("ends when the connection drops during the
+  command …") records the current behaviour: `exec()` on a dead client rejects with
+  `Not connected`. A fix turns that assertion into a resolved `error`.
+- **Found by:** the stage 2 integration tests (a flaky run of `monitor.test.ts`).
