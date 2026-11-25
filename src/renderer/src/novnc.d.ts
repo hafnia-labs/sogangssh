@@ -9,6 +9,7 @@ declare module '@novnc/novnc' {
   }
 
   export type RfbDisconnectEvent = CustomEvent<{ clean: boolean }>
+  export type RfbClipboardEvent = CustomEvent<{ text: string }>
   export type RfbSecurityFailureEvent = CustomEvent<{ status: number; reason?: string }>
 
   export default class RFB extends EventTarget {
@@ -26,5 +27,6 @@ declare module '@novnc/novnc' {
     focus(): void
     blur(): void
     clipboardPasteFrom(text: string): void
+    sendKey(keysym: number, code: string, down?: boolean): void
   }
 }

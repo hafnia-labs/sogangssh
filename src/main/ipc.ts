@@ -1,6 +1,14 @@
-import { app, BrowserWindow, ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  ipcMain,
+  type IpcMainEvent,
+  type IpcMainInvokeEvent,
+} from 'electron'
 import {
   IpcChannel,
+  MAX_CLIPBOARD_TEXT,
   type DisplayEndResult,
   type DisplayStartResult,
   type LaunchResult,
@@ -215,5 +223,26 @@ export function registerIpcHandlers(): void {
 
   ipcMain.on(IpcChannel.terminalResize, (event, cols: unknown, rows: unknown) => {
     if (isTrustedSender(event)) shell.resize(cols, rows)
+  })
+
+  // The PC clipboard is read only when the user pastes on the remote desktop. Text over the
+  // limit is not sent at all (null), so a huge clipboard never crosses IPC. (Electron's clipboard
+  // API is asynchronous.)
+  ipcMain.handle(IpcChannel.clipboardReadText, async (event): Promise<string | null> => {
+    if (!isTrustedSender(event)) return ''
+    try {
+      const text = await clipboard.readText()
+      return text.length > MAX_CLIPBOARD_TEXT ? null : text
+    } catch {
+      return ''
+    }
+  })
+
+  // Text copied on the remote desktop.
+  ipcMain.on(IpcChannel.clipboardWriteText, (event, text: unknown) => {
+    if (!isTrustedSender(event)) return
+    if (typeof text === 'string' && text.length > 0 && text.length <= MAX_CLIPBOARD_TEXT) {
+      clipboard.writeText(text).catch(() => {})
+    }
   })
 }

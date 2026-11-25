@@ -97,6 +97,9 @@ export const en: Messages = {
   display: {
     starting: 'Preparing the virtual display on the server…',
     connecting: 'Connecting to the virtual display…',
+    clipboardTooLong: 'The text to paste is too long. Paste it in parts of 256 KB or less.',
+    clipboardNotLatin1:
+      'Korean and some other characters cannot be pasted on the remote desktop and turn into ?. Letters, numbers and symbols paste as they are.',
     ended:
       'The connection to the virtual display closed. The same session was opened on another PC, or the session ended.',
     stopped: 'The session has ended. Every program that was running on it was stopped too.',
@@ -229,6 +232,14 @@ export const en: Messages = {
       display: {
         title: 'Remote desktop',
         text: 'Programs you start appear here. The desktop runs on the server, so if you choose Keep running when closing the app, you can pick up where you left off.',
+      },
+      workbenchSave: {
+        title: 'Workbench tip: new projects',
+        text: 'A project made with New gets a temporary name. Use Project → Save As → Project... to choose its folder and name.',
+      },
+      workbenchTyping: {
+        title: 'Workbench tip: names and typing',
+        text: 'When renaming, press Enter to confirm; clicking elsewhere cancels. On this screen, type with your keyboard in English input mode.',
       },
       terminal: {
         title: 'Terminal',

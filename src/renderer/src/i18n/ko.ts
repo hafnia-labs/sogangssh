@@ -95,6 +95,9 @@ export const ko = {
   display: {
     starting: '서버에 가상 화면을 준비하는 중…',
     connecting: '가상 화면에 연결하는 중…',
+    clipboardTooLong: '붙여넣을 글이 너무 깁니다. 256 KB 이하로 나눠서 붙여넣어 주세요.',
+    clipboardNotLatin1:
+      '원격 화면에는 한글 등 일부 문자를 붙여넣을 수 없어 ?로 바뀝니다. 영문, 숫자, 기호는 그대로 들어갑니다.',
     ended: '가상 화면 연결이 닫혔습니다. 다른 PC에서 같은 세션에 접속했거나 세션이 종료되었습니다.',
     stopped: '세션을 종료했습니다. 서버에서 실행 중이던 프로그램도 모두 종료되었습니다.',
     startNew: '새 세션 시작',
@@ -224,6 +227,14 @@ export const ko = {
       display: {
         title: '원격 화면',
         text: '켠 프로그램은 가운데 화면에 나타나. 이 화면은 서버에서 돌아가서, 앱을 닫을 때 계속 실행을 고르면 다음에 그대로 이어서 쓸 수 있어.',
+      },
+      workbenchSave: {
+        title: 'Workbench 팁: 새 프로젝트',
+        text: 'New로 만든 프로젝트는 임시 이름이야. Project → Save As → Project...를 눌러 저장할 폴더와 이름을 정해 줘.',
+      },
+      workbenchTyping: {
+        title: 'Workbench 팁: 이름과 입력',
+        text: '이름을 바꿀 땐 Enter를 눌러야 확정돼. 다른 곳을 누르면 취소돼. 그리고 이 화면에서는 한/영 키를 영문으로 두고 입력해 줘.',
       },
       terminal: {
         title: '터미널',

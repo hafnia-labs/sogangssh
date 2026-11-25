@@ -37,6 +37,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - Server status panel (left): server load, memory, disk quota, who is logged in, my running processes, and license usage for launchers that define license features, refreshed periodically
 - Built-in terminal: the server's login shell in the right panel, with `DISPLAY` and `XAUTHORITY` set so any X program started there appears on the remote desktop
 - Remote desktop: start a virtual display on the server and show it in the center panel, forwarding mouse and keyboard input
+- Clipboard: copy and paste text between the PC and the remote desktop (see "Clipboard")
 - App launchers: start frequently used GUIs with a button; the built-in list starts with Sentaurus Workbench and Sentaurus Visual
 - Persistent session: one remote desktop per user that can outlive the app, so long simulations keep running and the same screen comes back at the next login (see "Session lifetime")
 - Exit choice: closing the app asks "Keep running" (leave the session for later) or "End everything" (stop the desktop and every program on it)
@@ -49,7 +50,6 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - Automatic SSH key registration, so later logins need no password (dropped from the MVP: the password is entered at every login)
 - User-defined launchers (add and edit entries in the app)
 - Version 2: launchers for programs other than Sentaurus TCAD (for example Cadence Virtuoso), after their commands are checked on the server. Version 1 stays TCAD-only.
-- Clipboard copy/paste between the local machine and the remote desktop
 - File upload/download panel (drag and drop)
 - Local graph viewer for result files (.plt)
 - Multiple saved server profiles
@@ -165,6 +165,15 @@ Stage 5 implemented the simpler behavior (the session always ends when the exec 
 
 The school server has TigerVNC 1.8 (`Xvnc` only, no `vncserver` wrapper), so the app starts `Xvnc` itself. Because the server is shared, the VNC port accepts only local connections and requires a per-session random password, and the X display requires a cookie, so other users on the same server cannot view or type into the session.
 
+### Clipboard
+
+Students often paste scripts written by others into an editor on the remote desktop, and copy results back out.
+
+- **PC → desktop**: when the user presses a paste key on the remote desktop (Ctrl+V, Ctrl+Shift+V or Shift+Insert), the app first reads the PC clipboard, sends its text to Xvnc as the VNC clipboard, and only then sends the key. Both go over the same connection in order, so the program on the desktop pastes the new text. The PC clipboard is read only at that moment, never in the background, so nothing copied for other purposes (for example a password) is sent to the server unless the user pastes it there.
+- **Desktop → PC**: text copied on the desktop (Ctrl+C or a Copy menu, the CLIPBOARD selection) is written to the PC clipboard. Xvnc runs with `-SendPrimary=0`, so merely selecting text on the desktop does not overwrite the PC clipboard.
+- TigerVNC 1.8 on the server only supports the classic Latin-1 clipboard: characters outside it (for example Korean comments) arrive as `?`. When pasted text contains such characters, the app says so once. Scripts themselves are ASCII.
+- Only text is copied (no files or images). Xvnc's own limit applies to very large pastes.
+
 ## Tech stack
 
 Built with Electron + TypeScript. The terminal (xterm.js) and remote display (noVNC) are both web components, and Node's `ssh2` alone handles both the shell and port forwarding, so the core features come with the least code.
@@ -223,7 +232,7 @@ The university's official mascot 서강이 sits in a corner of the window and te
 - **Click**: it reacts like a mascot that has been poked: a short hop and a switch to the joy pose (기쁨), then a speech bubble opens with the tutorial for the current screen. Clicking it again while the tutorial is open closes it.
 - **Tutorial**: a few steps in the speech bubble with Back / Next / Close. Each step has its own pose (가르침 for explaining, 발견 for "look here", 응원 at the end) and outlines the part of the window it talks about (elements marked with `data-tour`). A hidden target (for example a collapsed panel) is simply not outlined.
   - Login screen: the server address and port (from the lab), ID and password, trusting the server key on the first connection, and asking the administrator for a forgotten password.
-  - Main screen: the TCAD launch buttons, the remote desktop, the terminal (`swb &` there also opens on the desktop), the server status panel (check licenses before launching), and ending the session (*End session*, and the keep / end choice when closing).
+  - Main screen: the TCAD launch buttons, the remote desktop, Workbench tips (New makes a temporary project that is named with *Save As → Project...*; a rename is confirmed with Enter and cancelled by clicking elsewhere; type on the desktop in English input mode, since keys composed by a Korean IME do not reach it), the terminal (`swb &` there also opens on the desktop), the server status panel (check licenses before launching), and ending the session (*End session*, and the keep / end choice when closing).
 - **Move**: users can drag 서강이 anywhere in the window (a press without movement is still a click). The speech bubble opens next to it, on whichever side has room. The position is remembered per screen, and 서강이 is kept inside the window when it is resized.
 - **Hide**: a "Hide 서강이" link in the speech bubble, and a guide toggle button (top right on the login screen, in the toolbar on the main screen) that hides it or brings it back. Hiding also closes an open tutorial and skips the first-run tutorial.
 - **First run**: the main-screen tutorial opens by itself once, after the first successful login. That it was shown, the hidden state and the positions are remembered in the renderer's local storage (conveniences; losing them only brings back the defaults).

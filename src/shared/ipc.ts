@@ -19,7 +19,12 @@ export const IpcChannel = {
   passwordChange: 'password:change',
   appCloseRequested: 'app:closeRequested',
   appClose: 'app:close',
+  clipboardReadText: 'clipboard:readText',
+  clipboardWriteText: 'clipboard:writeText',
 } as const
+
+/** Longest text the app copies between the PC and the remote desktop (Xvnc's own limit). */
+export const MAX_CLIPBOARD_TEXT = 256 * 1024
 
 /** One user on the server, from login sessions (who) and CPU time (ps). */
 export type ServerUser = {

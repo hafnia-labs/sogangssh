@@ -46,6 +46,7 @@ This file must never contain server details itself. Where a check needs the actu
 - [ ] Launchers start one copy per program unless the user asks for another (each copy takes a license).
 
 ### Local data on the user's PC
+- [ ] The PC clipboard is read only when the user presses a paste key on the remote desktop, never in the background or on focus.
 - [ ] The app stores only trusted host key fingerprints (`known-hosts.json`) and the language and guide settings in local storage. No passwords, server addresses or account names.
 
 ## 3. Before a release

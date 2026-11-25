@@ -70,6 +70,11 @@ const api = {
     run: (id: string, force = false): Promise<LaunchResult> =>
       ipcRenderer.invoke(IpcChannel.launcherRun, id, force),
   },
+  clipboard: {
+    /** The PC clipboard's text; null when it is too long to paste. */
+    readText: (): Promise<string | null> => ipcRenderer.invoke(IpcChannel.clipboardReadText),
+    writeText: (text: string): void => ipcRenderer.send(IpcChannel.clipboardWriteText, text),
+  },
   app: {
     /** Main asks the renderer whether to keep or end the remote desktop before closing. */
     onCloseRequested: (listener: () => void) =>

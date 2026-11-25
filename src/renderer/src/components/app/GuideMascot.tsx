@@ -52,6 +52,8 @@ const STEPS: { [S in Screen]: Step<S>[] } = {
     { key: 'welcome', pose: 'joy' },
     { key: 'launchers', pose: 'teach', target: 'launchers' },
     { key: 'display', pose: 'look', target: 'display' },
+    { key: 'workbenchSave', pose: 'teach', target: 'display' },
+    { key: 'workbenchTyping', pose: 'look', target: 'display' },
     { key: 'terminal', pose: 'teach', target: 'terminal' },
     { key: 'server', pose: 'look', target: 'server' },
     { key: 'endSession', pose: 'teach', target: 'end-session' },

@@ -148,7 +148,7 @@ for N in $PREF $(seq 20 99); do
   printf 'add :%s . %s\n' "$N" "$COOKIE" | xauth -f "$XAUTH" source - >/dev/null 2>&1
   setsid nohup Xvnc ":$N" -localhost -nolisten tcp -rfbport "$PORT" \
     -SecurityTypes VncAuth -rfbauth "$SESSION/passwd" -auth "$XAUTH" \
-    -geometry "$W"x"$H" -depth 24 -desktop sogangSSH $LIFETIME \
+    -geometry "$W"x"$H" -depth 24 -desktop sogangSSH -SendPrimary=0 $LIFETIME \
     > "$SESSION/xvnc.log" 2>&1 < /dev/null 9>&- &
   i=0
   while [ "$i" -lt 50 ]; do
