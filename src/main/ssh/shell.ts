@@ -93,8 +93,16 @@ export class RemoteShell {
         })
         resolve({ ok: true, replay: '' })
       }
-      if (command) client.exec(command, { pty }, onChannel)
-      else client.shell(pty, onChannel)
+      // ssh2 throws (instead of calling back) when the connection has just dropped (B-036).
+      try {
+        if (command) client.exec(command, { pty }, onChannel)
+        else client.shell(pty, onChannel)
+      } catch (e) {
+        onChannel(
+          e instanceof Error ? e : new Error(String(e)),
+          undefined as unknown as ClientChannel,
+        )
+      }
     })
     return this.opening
   }

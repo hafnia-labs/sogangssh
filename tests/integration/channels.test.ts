@@ -55,10 +55,10 @@ describe('exec channels the server breaks (B-006)', () => {
     const r = await exec(client, 'drops-connection', 2000)
     expect(r.code).toBeNull()
     await until(() => statuses.some((s) => s.state === 'disconnected'))
-    // Found in stage 2: on a dead client ssh2 throws from `exec` and `exec()` rejects (like
-    // B-013 for the password change) instead of resolving with an error. Recorded here so a fix
-    // shows up as a change: see BUGS.md B-036.
-    await expect(exec(client, 'echo hi', 2000)).rejects.toThrow('Not connected')
+    // B-036: on a dead client ssh2 throws from `exec`; `exec()` must still resolve with an error.
+    const after = await exec(client, 'echo hi', 2000)
+    expect(after.code).toBeNull()
+    expect(after.error).toBe('Not connected')
   })
 
   it('times out a command that never answers and closes its channel', async () => {

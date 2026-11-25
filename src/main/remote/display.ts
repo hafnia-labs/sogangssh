@@ -216,10 +216,20 @@ export class RemoteDisplay {
       ws.on('message', (data: Buffer) => {
         if (!closed && stream?.writable) stream.write(data)
       })
-      client.forwardOut('127.0.0.1', 0, '127.0.0.1', info.port, (err, forwarded) => {
+      const forwardFailed = () => {
+        if (!closed) ws.close(1011, 'forward failed')
+        closed = true
+      }
+      // ssh2 throws (instead of calling back) when the connection has just dropped (B-036); this
+      // runs in an event handler, where a throw would crash the main process.
+      try {
+        client.forwardOut('127.0.0.1', 0, '127.0.0.1', info.port, onForward)
+      } catch {
+        forwardFailed()
+      }
+      function onForward(err: Error | undefined, forwarded: ClientChannel) {
         if (err) {
-          if (!closed) ws.close(1011, 'forward failed')
-          closed = true
+          forwardFailed()
           return
         }
         // An 'error' event without a listener would crash the main process.
@@ -233,7 +243,7 @@ export class RemoteDisplay {
           if (ws.readyState === ws.OPEN) ws.send(data)
         })
         forwarded.on('close', closeBoth)
-      })
+      }
     })
 
     return new Promise<DisplayStartResult>((resolve) => {

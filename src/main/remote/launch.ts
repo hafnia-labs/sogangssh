@@ -90,46 +90,55 @@ export function launch(
   if (!script) return Promise.resolve({ ok: false, error: 'failed', detail: 'Invalid launcher' })
 
   return new Promise((resolve) => {
-    client.exec('sh -s', (err, channel) => {
-      if (err) {
-        resolve({ ok: false, error: 'failed', detail: err.message })
-        return
-      }
-      let stdout = ''
-      let stderr = ''
-      const timer = setTimeout(() => {
-        channel.close()
-        resolve({ ok: false, error: 'failed', detail: 'timeout' })
-      }, LAUNCH_TIMEOUT_MS)
-      // ssh2 only emits 'close' once stdout has been consumed, so always read it.
-      channel.on('data', (chunk: Buffer) => (stdout += chunk.toString('utf8')))
-      channel.stderr.on('data', (chunk: Buffer) => {
-        stderr = (stderr + chunk.toString('utf8')).slice(-1000)
-      })
-      // An 'error' event without a listener would crash the main process.
-      channel.on('error', (e: Error) => {
-        clearTimeout(timer)
-        resolve({ ok: false, error: 'failed', detail: e.message })
-      })
-      channel.on('close', () => {
-        clearTimeout(timer)
-        const line = stdout
-          .split('\n')
-          .map((l) => l.trim())
-          .find((l) => /^(LAUNCHED|RUNNING|ERROR) /.test(l))
-        if (line?.startsWith('LAUNCHED')) {
-          resolve({ ok: true })
-        } else if (line?.startsWith('RUNNING')) {
-          resolve({ ok: false, error: 'alreadyRunning' })
-        } else if (line) {
-          const [, code, ...rest] = line.split(' ')
-          const error = code === 'notFound' || code === 'exited' ? code : 'failed'
-          resolve({ ok: false, error, detail: rest.join(' ').trim() || undefined })
-        } else {
-          resolve({ ok: false, error: 'failed', detail: stderr.trim().slice(-300) || undefined })
+    // ssh2 throws (instead of calling back) when the connection has just dropped (B-036).
+    try {
+      start()
+    } catch (e) {
+      resolve({ ok: false, error: 'failed', detail: e instanceof Error ? e.message : String(e) })
+    }
+
+    function start() {
+      client.exec('sh -s', (err, channel) => {
+        if (err) {
+          resolve({ ok: false, error: 'failed', detail: err.message })
+          return
         }
+        let stdout = ''
+        let stderr = ''
+        const timer = setTimeout(() => {
+          channel.close()
+          resolve({ ok: false, error: 'failed', detail: 'timeout' })
+        }, LAUNCH_TIMEOUT_MS)
+        // ssh2 only emits 'close' once stdout has been consumed, so always read it.
+        channel.on('data', (chunk: Buffer) => (stdout += chunk.toString('utf8')))
+        channel.stderr.on('data', (chunk: Buffer) => {
+          stderr = (stderr + chunk.toString('utf8')).slice(-1000)
+        })
+        // An 'error' event without a listener would crash the main process.
+        channel.on('error', (e: Error) => {
+          clearTimeout(timer)
+          resolve({ ok: false, error: 'failed', detail: e.message })
+        })
+        channel.on('close', () => {
+          clearTimeout(timer)
+          const line = stdout
+            .split('\n')
+            .map((l) => l.trim())
+            .find((l) => /^(LAUNCHED|RUNNING|ERROR) /.test(l))
+          if (line?.startsWith('LAUNCHED')) {
+            resolve({ ok: true })
+          } else if (line?.startsWith('RUNNING')) {
+            resolve({ ok: false, error: 'alreadyRunning' })
+          } else if (line) {
+            const [, code, ...rest] = line.split(' ')
+            const error = code === 'notFound' || code === 'exited' ? code : 'failed'
+            resolve({ ok: false, error, detail: rest.join(' ').trim() || undefined })
+          } else {
+            resolve({ ok: false, error: 'failed', detail: stderr.trim().slice(-300) || undefined })
+          }
+        })
+        channel.end(script)
       })
-      channel.end(script)
-    })
+    }
   })
 }

@@ -449,17 +449,20 @@ Each entry gives:
   school server (manual).
 - **Found by:** not recorded.
 
-## B-036: A command on a just-dropped connection rejects instead of failing cleanly (open)
+## B-036: A command on a just-dropped connection rejects instead of failing cleanly
 
-- **Date:** 2026-11-25 (found, not fixed).
+- **Date:** 2026-11-25.
 - **Symptom:** none seen yet. In one integration run the server panel's query hit a connection
   that had just dropped and left an unhandled promise rejection ("Not connected") in main.
-- **Cause:** ssh2 throws from `exec` when its socket is already gone, before `SshConnection` has
-  seen the `close` event. `remote/exec.ts` calls `client.exec` inside a Promise without a `try`,
-  so the call rejects. Its callers (server monitor, license read, display upload) expect it to
-  resolve with an `error`. The same throw was fixed for the password change in B-013.
-- **Fix:** not yet.
-- **Guard:** `tests/integration/channels.test.ts` ("ends when the connection drops during the
-  command …") records the current behaviour: `exec()` on a dead client rejects with
-  `Not connected`. A fix turns that assertion into a resolved `error`.
+- **Cause:** ssh2 throws from `exec`, `shell` and `forwardOut` when its socket is already gone,
+  before `SshConnection` has seen the `close` event. `remote/exec.ts` and `remote/launch.ts`
+  called `client.exec` inside a Promise without a `try`, so the call rejected; `ssh/shell.ts`
+  did the same for the terminal; and in `remote/display.ts` the throw happened in the ws bridge's
+  connection handler, where it would crash main. The same throw was fixed for the password
+  change in B-013.
+- **Fix:** each call site catches the throw and returns its ordinary error result (`exec`:
+  `error`, launch and terminal: `failed`, display bridge: the WebSocket is closed).
+- **Guard:** `tests/unit/dropped-connection.test.ts` (exec, launch, terminal) and
+  `tests/integration/channels.test.ts` ("ends when the connection drops during the command …").
+  Re-introducing the bug in `exec.ts` makes the unit test fail.
 - **Found by:** the stage 2 integration tests (a flaky run of `monitor.test.ts`).
