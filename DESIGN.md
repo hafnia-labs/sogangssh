@@ -44,6 +44,7 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - Connection status indicator and automatic reconnect on disconnect
 - Password change: a logged-in user can change their server account password from the toolbar (see "Password change"). A forgotten password cannot be reset from the app; the login screen tells the user to ask the server administrator
 - Guide character: the mascot 서강이 in a corner of the window; clicking it opens a short tutorial for the current screen (see "Guide character (서강이)")
+- Automatic updates: the installed app downloads new versions from GitHub Releases in the background and installs them when it restarts (see "Updates")
 
 ### After the MVP
 
@@ -53,7 +54,6 @@ The MVP goes as far as "log in and the terminal and remote desktop appear, and a
 - File upload/download panel (drag and drop)
 - Local graph viewer for result files (.plt)
 - Multiple saved server profiles
-- Auto update
 - Connection latency in the status bar, measured from real round trips (a placeholder value was shown until 0.1.0 and then removed)
 
 ### Out of scope
@@ -97,6 +97,20 @@ Simulations can run for hours, so the remote desktop must not depend on the app 
 - **Ending without closing the app.** A visible "End session" action in the toolbar does the same as *End everything* without closing the app.
 - **Leftover cleanup.** If a session's processes were killed without cleanup, the next login stops whatever is left (Xvnc, window manager, programs on that display), not only the session folder, so no license stays held by an unreachable session.
 - **Long-idle sessions**: a desktop that no app has been connected to for 24 hours ends by itself (Xvnc `MaxDisconnectionTime`), so a forgotten session cannot hold licenses for days. A "session running since…" notice at login may be added later.
+
+## Updates
+
+Students install the app once; after that it keeps itself up to date from the public GitHub Releases of `hafnia-labs/sogangssh` (electron-updater). Windows first; the macOS dmg cannot update itself until it is signed.
+
+- **Installed app only.** A development run (`npm run dev`, unpacked builds) never checks. The installed app checks at startup and then every 4 hours. Releases are pre-releases for now, so pre-releases count as updates (the newest release in the feed wins).
+- **Background download.** A newer version downloads while the app is used, with no prompt. When it is ready, a small notice says "New version X is ready. It installs when you restart" with a *Restart now* button. The current version is shown in the status bar and on the login screen.
+- **Never restarts on its own while connected.** *Restart now* goes through the same exit question as closing the window (see "Session lifetime"): while connected the user chooses *Keep running* or *End everything* (with "restart" wording), or cancels. Only after that choice does the app quit, install silently and start the new version. Not connected: it restarts at once.
+- **Install on quit.** If the user ignores the notice, the update installs silently the next time the app quits normally (it does not start again by itself).
+- **Integrity.** electron-updater accepts a download only if its SHA-512 matches `latest.yml` from the same release; a broken or tampered download is discarded. The app is not code-signed, so there is no signature check. This protects against corrupted or swapped downloads in transit (HTTPS from GitHub plus the hash), but **not** against a compromised GitHub account or release: whoever can publish a release on the repository can push any program to every installed copy. Protect the GitHub account (2FA, few maintainers) and consider code signing before wide distribution.
+- **Errors stay quiet.** No network, no release, or a release without `latest.yml` is logged to the console (no tokens, no user data) and otherwise ignored; the next check tries again.
+- **The 0.1.0 installer has no updater.** Copies installed from 0.1.0 must install the next release by hand once; from then on they update themselves.
+
+Release rule (also in `SECURITY-CHECKLIST.md` section 3): every release bumps the version in `package.json`; never replace the files of an existing release (installed copies ignore a changed file with the same version); attach the installer (`sogangSSH-Setup-<version>.exe`), `latest.yml` and the `.blockmap` from `release/<version>/` to the new release, without renaming them.
 
 ## Password change
 
@@ -191,7 +205,7 @@ Built with Electron + TypeScript. The terminal (xterm.js) and remote display (no
 | WebSocket bridge | ws (Node) | Connects noVNC (WebSocket) ↔ SSH forwarding channel (TCP) |
 | Settings storage | electron-store | Trusted host keys |
 | Packaging | electron-builder | Windows NSIS installer, macOS dmg |
-| Auto update (later) | electron-updater + GitHub Releases | Update without reinstalling |
+| Auto update | electron-updater + GitHub Releases | Update without reinstalling (see "Updates") |
 | Server-side display | TigerVNC (Xvnc) | Run GUI programs on a virtual display |
 
 Tauri produces a smaller app but would require writing the SSH layer in Rust, slowing down the MVP. Revisit after the MVP if app size becomes a problem.
@@ -251,6 +265,8 @@ The principle is "ask for the password at every login, store nothing secret".
 7. The window only ever shows the app's own page: navigation is blocked (including a file dropped onto the window), and main accepts IPC only from the main frame of that exact page, so no other page can reach the SSH session through the preload API.
 8. Server details (addresses, ports, host names, host keys, license servers) are never committed: the repository is public. The app is built without any of them: users type the server details, and the license servers are read from the user's own `~/.bash_profile` after login. Developer notes about the server go in the git-ignored `CLAUDE.local.md`.
 
+9. Updates come only from the repository's GitHub Releases over HTTPS and are accepted only when their SHA-512 matches the release's `latest.yml`. Without code signing, anyone who controls the GitHub account or a release can ship code to every installed copy (see "Updates").
+
 Passwords, private keys, and OTPs must never appear in log files.
 
 ## Server-side requirements and pre-checks
@@ -280,7 +296,7 @@ Installers contain no server details (the license servers are read from each use
 | Windows | NSIS installer (.exe) | Without code signing, SmartScreen warns; include a "More info → Run anyway" screenshot in the install guide |
 | macOS | .dmg (Apple Silicon, Intel) | Without notarization, Gatekeeper blocks it; requires an Apple Developer account ($99/year) |
 
-Start unsigned during internal lab distribution, and consider signing as users grow. Make a one-page, screenshot-based install guide for users.
+Start unsigned during internal lab distribution, and consider signing as users grow. `electron-builder.yml` declares the GitHub repository as the update source (`publish`), so every build writes `latest.yml` and a `.blockmap` next to the installer and puts the update source into the app; `npm run build:win` never uploads anything (`--publish never`). See "Updates" for how installed copies update. Make a one-page, screenshot-based install guide for users.
 
 ## Development stages (Claude Code work order)
 

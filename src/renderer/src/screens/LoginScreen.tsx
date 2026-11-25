@@ -6,6 +6,7 @@ import { FirstPasswordDialog } from '@/components/app/FirstPasswordDialog'
 import { GuideMascot } from '@/components/app/GuideMascot'
 import { GuideToggle } from '@/components/app/GuideToggle'
 import { LanguageToggle } from '@/components/app/LanguageToggle'
+import { AppVersion } from '@/components/app/UpdateNotice'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -248,6 +249,7 @@ export function LoginScreen({ onLogin }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AppVersion className="text-muted-foreground absolute bottom-2 left-3 text-xs tabular-nums" />
     </main>
   )
 }

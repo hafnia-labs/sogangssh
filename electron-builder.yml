@@ -15,6 +15,9 @@ win:
   target: nsis
   executableName: sogangssh
 nsis:
+  # Same name as the url electron-builder writes into latest.yml for GitHub (no spaces), so a
+  # release uploaded by hand matches it.
+  artifactName: ${productName}-Setup-${version}.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
@@ -23,3 +26,10 @@ mac:
     - target: dmg
       arch: [arm64, x64]
 npmRebuild: false
+# Update source for electron-updater: builds write latest.yml + .blockmap and put app-update.yml
+# into the app. The build scripts pass --publish never, so nothing is uploaded from this PC.
+publish:
+  provider: github
+  owner: hafnia-labs
+  repo: sogangssh
+  releaseType: prerelease

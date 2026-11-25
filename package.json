@@ -21,12 +21,13 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac"
+    "build:unpack": "npm run build && electron-builder --dir --publish never",
+    "build:win": "npm run build && electron-builder --win --publish never",
+    "build:mac": "npm run build && electron-builder --mac --publish never"
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
+    "electron-updater": "^6.8.11",
     "ssh2": "^1.17.0",
     "ws": "^8.23.0"
   },

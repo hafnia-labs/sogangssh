@@ -9,6 +9,7 @@ import {
 import {
   IpcChannel,
   MAX_CLIPBOARD_TEXT,
+  type CloseReason,
   type DisplayEndResult,
   type DisplayStartResult,
   type LaunchResult,
@@ -17,6 +18,7 @@ import {
   type ServerStatus,
   type SshStatus,
   type TerminalOpenResult,
+  type UpdateStatus,
 } from '../shared/ipc'
 import { isAppPage } from './app-page'
 import { launchers } from './launchers'
@@ -27,6 +29,7 @@ import { ServerMonitor } from './remote/server-monitor'
 import { SshConnection } from './ssh/connection'
 import { changePassword, isValidPasswordRequest } from './ssh/password'
 import { RemoteShell } from './ssh/shell'
+import { Updater } from './updater'
 
 function send(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -73,22 +76,52 @@ export const ssh = new SshConnection((status: SshStatus) => {
   send(IpcChannel.sshStatus, status)
 })
 
+/** Installed app only: downloads new releases in the background (see DESIGN.md "Updates"). */
+export const updater = new Updater({
+  onStatus: (status: UpdateStatus) => send(IpcChannel.updateStatus, status),
+})
+
 let quitAllowed = false
+/** The user asked to restart for an update; the quit installs it and starts the new version. */
+let restartingForUpdate = false
 
 /**
  * Called when a window closes or the app quits. While connected, the user first chooses
  * whether to keep the remote desktop running or end it, so this cancels the close and asks
  * the renderer. Returns true if the close must be prevented.
  */
-export function askBeforeQuit(): boolean {
+export function askBeforeQuit(reason: CloseReason = 'quit'): boolean {
   // With no window left there is nobody to ask: treat it as "keep running".
   if (quitAllowed || !ssh.isConnected || BrowserWindow.getAllWindows().length === 0) return false
-  send(IpcChannel.appCloseRequested, undefined)
+  send(IpcChannel.appCloseRequested, reason)
   return true
 }
 
+/** Quit once allowed: install the update and start again if that is why the app quits. */
+function finishQuit(): void {
+  quitAllowed = true
+  if (restartingForUpdate && updater.installNow()) return
+  app.quit()
+}
+
+/**
+ * "Restart now" on the update notice. Never quits on its own while connected: the same exit
+ * question as closing the window comes first, and the restart happens after its answer.
+ */
+function restartForUpdate(): void {
+  if (!updater.isReady) return
+  restartingForUpdate = true
+  if (askBeforeQuit('update')) return
+  ssh.disconnect()
+  finishQuit()
+}
+
 async function closeApp(choice: unknown): Promise<DisplayEndResult> {
-  if (choice !== 'keep' && choice !== 'end') return { ok: true }
+  if (choice !== 'keep' && choice !== 'end') {
+    // Staying in the app also drops a pending update restart (the update still installs on quit).
+    restartingForUpdate = false
+    return { ok: true }
+  }
   if (choice === 'end') {
     const client = ssh.activeClient
     if (!client) return { ok: false, error: 'notConnected' }
@@ -97,7 +130,7 @@ async function closeApp(choice: unknown): Promise<DisplayEndResult> {
   }
   quitAllowed = true
   ssh.disconnect()
-  app.quit()
+  finishQuit()
   return { ok: true }
 }
 
@@ -214,6 +247,16 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannel.appClose, (event, choice: unknown) => {
     if (!isTrustedSender(event)) return { ok: false, error: 'failed', detail: 'Untrusted sender' }
     return closeApp(choice)
+  })
+
+  ipcMain.handle(IpcChannel.updateGetStatus, (event): UpdateStatus | null => {
+    if (!isTrustedSender(event)) return null
+    return updater.status
+  })
+
+  ipcMain.handle(IpcChannel.updateRestart, (event) => {
+    if (!isTrustedSender(event)) return
+    restartForUpdate()
   })
 
   // Keystrokes and resizes are fire-and-forget to keep typing latency low.

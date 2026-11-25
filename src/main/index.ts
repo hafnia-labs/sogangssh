@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { devServerUrl, rendererFile } from './app-page'
-import { askBeforeQuit, registerIpcHandlers, ssh } from './ipc'
+import { askBeforeQuit, registerIpcHandlers, ssh, updater } from './ipc'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -54,6 +54,9 @@ void app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
 
   createWindow()
+
+  // Installed app only: look for a new release now and every few hours.
+  void updater.start()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

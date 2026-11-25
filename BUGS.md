@@ -466,3 +466,33 @@ Each entry gives:
   `tests/integration/channels.test.ts` ("ends when the connection drops during the command …").
   Re-introducing the bug in `exec.ts` makes the unit test fail.
 - **Found by:** the stage 2 integration tests (a flaky run of `monitor.test.ts`).
+
+## B-037: The installed app would never have found electron-updater's autoUpdater
+
+- **Date:** 2026-11-25.
+- **Symptom:** none shipped. Found before the first updater build: in the packaged app the
+  updater would have stopped at startup without ever checking for a release.
+- **Cause:** main loads `electron-updater` with a dynamic `import()`, which the bundle keeps, so
+  Node loads that CommonJS package as ESM. Its `autoUpdater` is defined as a getter with
+  `Object.defineProperty`, which Node does not list as a named export; only `default`
+  (module.exports) has it. Vitest's module loader does see the named export, so mocked tests pass.
+- **Fix:** `pickAutoUpdater()` in `src/main/updater.ts` takes the named export or the one on
+  `default`, and throws (logged as "not available") if neither exists.
+- **Guard:** `tests/unit/updater.test.ts` ("finds autoUpdater on the default export … (B-037)")
+  asks a plain Node process how it sees the package, then checks `pickAutoUpdater`. The local
+  end-to-end update check runs the packaged app.
+- **Found by:** reading the bundled `out/main` before the end-to-end check.
+
+## B-038: Hand-uploaded installers would not have matched latest.yml
+
+- **Date:** 2026-11-25.
+- **Symptom:** none shipped. Every update would have failed with a 404 after a hand upload.
+- **Cause:** for the GitHub provider electron-builder writes the installer into `latest.yml` as
+  `sogangSSH-Setup-<version>.exe` (spaces become dashes) and renames it only when it uploads
+  itself. The build wrote `sogangSSH Setup <version>.exe`, and GitHub turns spaces in an uploaded
+  name into dots, so neither matched.
+- **Fix:** `nsis.artifactName` in `electron-builder.yml` is `${productName}-Setup-${version}.${ext}`,
+  the same name `latest.yml` uses.
+- **Guard:** `tests/unit/static.test.ts` ("update build settings (B-038)"). Checked by building
+  with the real config: the installer, its `.blockmap` and the `latest.yml` url match.
+- **Found by:** comparing `latest.yml` with the build output before the first update release.

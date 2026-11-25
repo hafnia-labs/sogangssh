@@ -21,7 +21,16 @@ export const IpcChannel = {
   appClose: 'app:close',
   clipboardReadText: 'clipboard:readText',
   clipboardWriteText: 'clipboard:writeText',
+  updateStatus: 'update:status',
+  updateGetStatus: 'update:getStatus',
+  updateRestart: 'update:restart',
 } as const
+
+/**
+ * App update state, pushed from main when it changes. `readyVersion` is a newer version that has
+ * been downloaded and checked, and installs at the next restart; null while there is none.
+ */
+export type UpdateStatus = { currentVersion: string; readyVersion: string | null }
 
 /** Longest text the app copies between the PC and the remote desktop (Xvnc's own limit). */
 export const MAX_CLIPBOARD_TEXT = 256 * 1024
@@ -107,6 +116,9 @@ export type DisplayEndResult =
  * or stay in the app.
  */
 export type CloseChoice = 'keep' | 'end' | 'cancel'
+
+/** Why main asks the exit question: the user closes the app, or restarts it to install an update. */
+export type CloseReason = 'quit' | 'update'
 
 export type TerminalOpenResult =
   | {

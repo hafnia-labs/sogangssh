@@ -191,6 +191,17 @@ export const en: Messages = {
     cancel: 'Cancel',
     ending: 'Ending…',
     failed: 'Could not end the session. Close and keep it running, or try again.',
+    restartTitle: 'Restart to update?',
+    restartDescription:
+      'The app closes, installs the new version and opens again. If you keep it running, the remote desktop and its programs keep running on the server, and logging in again brings back the same screen.',
+    restartKeep: 'Keep running and restart',
+    restartEnd: 'End everything and restart',
+  },
+  update: {
+    ready: (version) => `New version ${version} is ready`,
+    description: 'It installs when you restart. Otherwise it installs when you close the app.',
+    restart: 'Restart now',
+    version: (version) => `Version ${version}`,
   },
   guide: {
     name: 'Sogangi',

@@ -186,6 +186,17 @@ export const ko = {
     cancel: '취소',
     ending: '종료하는 중…',
     failed: '세션을 종료하지 못했습니다. 계속 실행하고 닫거나 다시 시도하세요.',
+    restartTitle: '다시 시작해서 업데이트할까요?',
+    restartDescription:
+      '앱을 닫고 새 버전을 설치한 뒤 다시 엽니다. 계속 실행하면 원격 화면과 프로그램이 서버에서 계속 돌아가고, 다시 로그인하면 같은 화면으로 돌아옵니다.',
+    restartKeep: '계속 실행하고 다시 시작',
+    restartEnd: '모두 종료하고 다시 시작',
+  },
+  update: {
+    ready: (version: string) => `새 버전 ${version} 준비 완료`,
+    description: '다시 시작하면 설치됩니다. 지금 하지 않으면 앱을 닫을 때 설치됩니다.',
+    restart: '지금 다시 시작',
+    version: (version: string) => `버전 ${version}`,
   },
   guide: {
     name: '서강이',

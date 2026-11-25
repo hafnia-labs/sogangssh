@@ -84,3 +84,26 @@ describe('installer', () => {
     expect(entries).toEqual(['out/**', 'resources/**'])
   })
 })
+
+// B-038: for GitHub, electron-builder writes the installer into latest.yml with dashes instead of
+// spaces. A hand-uploaded installer must have that same name, or every update fails with a 404.
+describe('update build settings (B-038)', () => {
+  const config = read(join(root, 'electron-builder.yml'))
+  const scripts = JSON.parse(read(join(root, 'package.json'))).scripts as Record<string, string>
+
+  it('names the installer without spaces, as latest.yml does', () => {
+    const name = /^\s+artifactName:\s*(\S+)\s*$/m.exec(config.split(/^nsis:/m)[1] ?? '')?.[1]
+    expect(name).toBe('${productName}-Setup-${version}.${ext}')
+  })
+
+  it('declares the GitHub repository as the update source', () => {
+    expect(config).toMatch(
+      /^publish:\n {2}provider: github\n {2}owner: hafnia-labs\n {2}repo: sogangssh/m,
+    )
+  })
+
+  it('never uploads from a build script', () => {
+    for (const name of ['build:unpack', 'build:win', 'build:mac'])
+      expect(scripts[name]).toContain('--publish never')
+  })
+})

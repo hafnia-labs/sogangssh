@@ -52,8 +52,11 @@ This file must never contain server details itself. Where a check needs the actu
 ## 3. Before a release
 
 - [ ] **Build output is clean.** Build with `npx electron-vite build` and search `out/` for the values in `CLAUDE.local.md`. There must be no matches. Do the same for the packaged app.
-- [ ] **Dependencies.** Run `npm audit` and review anything in runtime `dependencies` (ssh2, ws, @electron-toolkit/utils) first. Check that Electron is on a supported version with current security fixes.
+- [ ] **Dependencies.** Run `npm audit` and review anything in runtime `dependencies` (ssh2, ws, @electron-toolkit/utils, electron-updater) first. Check that Electron is on a supported version with current security fixes.
 - [ ] **Release notes and assets.** The release text, screenshots and attached files contain no server details or account names.
+- [ ] **New version.** `version` in `package.json` is higher than every published release. Never replace or re-upload files of an existing release: installed copies have already seen that version and ignore it.
+- [ ] **Update files.** The new release has the installer, `latest.yml` and the `.blockmap` from the same `release/<version>/` build (a mismatched `latest.yml` fails the SHA-512 check and nobody updates). The files keep their names (`latest.yml` points at `sogangSSH-Setup-<version>.exe`). The tag is `v<version>`.
+- [ ] **GitHub account.** Without code signing, a release is trusted by every installed copy: the account that publishes it has 2FA, and nobody else has write access to releases.
 - [ ] **Section 1 holds for every commit in the release.**
 
 ## 4. Testing on the school server

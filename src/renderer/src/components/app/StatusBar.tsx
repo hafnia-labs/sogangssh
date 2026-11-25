@@ -1,3 +1,4 @@
+import { AppVersion } from '@/components/app/UpdateNotice'
 import { useI18n } from '@/i18n/context'
 
 type Props = { user: string; host: string; display: number | null }
@@ -11,6 +12,7 @@ export function StatusBar({ user, host, display }: Props) {
         {user}@{host}
       </span>
       {display !== null && <span className="ml-auto">{t.statusBar.display(display)}</span>}
+      <AppVersion className={display === null ? 'ml-auto' : undefined} />
     </footer>
   )
 }

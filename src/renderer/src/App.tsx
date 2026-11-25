@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ExitDialog } from '@/components/app/ExitDialog'
+import { UpdateNotice } from '@/components/app/UpdateNotice'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { I18nProvider } from '@/i18n/I18nProvider'
@@ -41,6 +42,7 @@ function App() {
           />
         )}
         <ExitDialog />
+        <UpdateNotice />
         <Toaster position="bottom-center" richColors />
       </TooltipProvider>
     </I18nProvider>

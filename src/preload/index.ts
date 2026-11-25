@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import {
   IpcChannel,
   type CloseChoice,
+  type CloseReason,
   type ConnectRequest,
   type DisplayEndResult,
   type DisplayStartResult,
@@ -14,6 +15,7 @@ import {
   type SshStatus,
   type TerminalExit,
   type TerminalOpenResult,
+  type UpdateStatus,
 } from '../shared/ipc'
 
 // Sandboxed preload: only `electron` can be required at runtime. Local imports such as
@@ -77,10 +79,17 @@ const api = {
   },
   app: {
     /** Main asks the renderer whether to keep or end the remote desktop before closing. */
-    onCloseRequested: (listener: () => void) =>
-      subscribe<void>(IpcChannel.appCloseRequested, listener),
+    onCloseRequested: (listener: (reason: CloseReason) => void) =>
+      subscribe<CloseReason>(IpcChannel.appCloseRequested, listener),
     close: (choice: CloseChoice): Promise<DisplayEndResult> =>
       ipcRenderer.invoke(IpcChannel.appClose, choice),
+  },
+  update: {
+    getStatus: (): Promise<UpdateStatus | null> => ipcRenderer.invoke(IpcChannel.updateGetStatus),
+    onStatus: (listener: (status: UpdateStatus) => void) =>
+      subscribe<UpdateStatus>(IpcChannel.updateStatus, listener),
+    /** Restart to install a downloaded update (asks keep / end first while connected). */
+    restart: (): Promise<void> => ipcRenderer.invoke(IpcChannel.updateRestart),
   },
 }
 
